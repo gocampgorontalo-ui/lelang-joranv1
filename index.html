@@ -387,42 +387,57 @@
 
     // LISTEN RIWAYAT BID
     db.ref('bids').on('value', snapshot => {
-        const list = document.getElementById("historyList");
-        list.innerHTML = "";
+    const list = document.getElementById("historyList");
+    list.innerHTML = "";
 
-        snapshot.forEach(child => {
-            const key = child.key;
-            const b = child.val();
-            const li = document.createElement("li");
-            li.className = "history-item";
+    snapshot.forEach(child => {
+        const key = child.key;
+        const b = child.val();
+        const li = document.createElement("li");
+        li.className = "history-item";
 
-            const namePublic = b.isAnon 
-                ? "User_*** (Anonim)" 
-                : `${b.displayName} (@${b.username})`;
+        // Tentukan Link Profil Roblox Player
+        const profileUrl = b.robloxLink && b.robloxLink.includes("roblox.com")
+            ? b.robloxLink 
+            : `https://www.roblox.com/search/users?keyword=${b.username}`;
 
-            let adminInfoHTML = "";
-            if(isAdmin) {
-                const roblink = b.robloxLink || `https://www.roblox.com/search/users?keyword=${b.username}`;
-                adminInfoHTML = `
-                    <div style="font-size:0.75rem; color:var(--gold); margin-top:3px;">
-                        [OWNER VIEW]: ${b.displayName} (@${b.username}) 
-                        ${b.isAnon ? '<span style="color:var(--red);">(ANONIM)</span>' : ''}
-                        <br><a href="${roblink}" target="_blank" style="color:var(--blue);">[Buka Profil Roblox]</a>
-                        <button onclick="kickPlayer('${key}')" style="background:var(--red); color:white; border:none; padding:2px 6px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-left:5px;">Kick Scammer</button>
-                    </div>
-                `;
-            }
-
-            li.innerHTML = `
-                <div>
-                    <strong>${namePublic}</strong>
-                    ${adminInfoHTML}
-                </div>
-                <span style="color: var(--green); font-weight: bold;">Rp ${parseInt(b.amount).toLocaleString('id-ID')}</span>
+        // Format Tampilan Nama & Link Visit Profil
+        let namePublic = "";
+        
+        if (b.isAnon) {
+            namePublic = `<span style="color:#8d99ae;">User_*** (Anonim)</span>`;
+        } else {
+            namePublic = `
+                <a href="${profileUrl}" target="_blank" style="color: #fff; text-decoration: none; font-weight: 700; transition: 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='#fff'">
+                    ${b.displayName} (@${b.username}) 
+                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.75rem; color: var(--blue); margin-left: 4px;" title="Visit Profil Roblox"></i>
+                </a>
             `;
-            list.insertBefore(li, list.firstChild);
-        });
+        }
+
+        // Tampilan Tambahan Khusus Mode Owner / Admin
+        let adminInfoHTML = "";
+        if(isAdmin) {
+            adminInfoHTML = `
+                <div style="font-size:0.75rem; color:var(--gold); margin-top:3px;">
+                    [OWNER VIEW]: ${b.displayName} (@${b.username}) 
+                    ${b.isAnon ? '<span style="color:var(--red);">(ANONIM)</span>' : ''}
+                    <br><a href="${profileUrl}" target="_blank" style="color:var(--blue); font-weight:bold;">[Buka Profil Roblox]</a>
+                    <button onclick="kickPlayer('${key}')" style="background:var(--red); color:white; border:none; padding:2px 6px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-left:5px;">Kick Scammer</button>
+                </div>
+            `;
+        }
+
+        li.innerHTML = `
+            <div>
+                <div>${namePublic}</div>
+                ${adminInfoHTML}
+            </div>
+            <span style="color: var(--green); font-weight: bold;">Rp ${parseInt(b.amount).toLocaleString('id-ID')}</span>
+        `;
+        list.insertBefore(li, list.firstChild);
     });
+});
 
     // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
@@ -648,7 +663,7 @@ async function scanQRFromFile(e) {
     // KIRIM BID PENAWARAN & SIMPAN DATA KE SPREADSHEET
     function submitBid() {
         if (isWarBidLocked) {
-            alert("War Bid sedang dikunci oleh admin. Tidak dapat melakukan penawaran.");
+            alert("War Bid sedang dikunci oleh Kylee. Tidak dapat melakukan penawaran.");
             return;
         }
 
@@ -690,7 +705,7 @@ async function scanQRFromFile(e) {
     // KONTROL PANEL ADMIN / OWNER
     function loginAdmin() {
         const pin = prompt("Masukkan PIN Admin:");
-        if(pin === "324111") {
+        if(pin === "324121") {
             isAdmin = true;
             document.getElementById("adminPanel").classList.add("active");
             alert("Login Owner Berhasil!");
