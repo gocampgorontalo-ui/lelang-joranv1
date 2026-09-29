@@ -259,7 +259,7 @@
     <!-- KANAN: WAR BID PANEL -->
     <div class="card">
         <div class="timer-box">
-            <small style="color: #8d99ae;">Sisa Waktu *WAR TIME GORONTALO*</small>
+            <small style="color: #8d99ae;">Sisa Waktu *WAR TIME^*</small>
             <div class="timer-val" id="timer">Memuat Waktu...</div>
         </div>
 
@@ -484,7 +484,7 @@
     // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
         if(targetEndTime === -1) {
-            document.getElementById("timer").innerText = "Dilanjutkan *TANPA TIMER*";
+            document.getElementById("timer").innerText = "*Timer Belum di Set*";
             document.getElementById("timer").style.color = "var(--gold)";
             return;
         }
