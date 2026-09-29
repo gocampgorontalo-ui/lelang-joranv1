@@ -183,15 +183,24 @@
     <div class="admin-panel" id="adminPanel">
         <h4 style="color: var(--red); margin-bottom: 10px;"><i class="fa-solid fa-user-shield"></i> Panel Kontrol Realtime Owner</h4>
 
-        <!-- KONTROL LOCK / UNLOCK WAR BID -->
+        <!-- KONTROL LOCK / UNLOCK WAR BID & HIDE/UNHIDE ANONIM -->
         <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
-            <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Akses Bidding (War Bid Status):</label>
-            <div style="display: flex; gap: 10px;">
+            <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Akses Bidding & Mode Tampilan Live Stream:</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <button class="btn-sm" style="background: var(--red); color:#fff; font-weight:bold; flex:1;" onclick="toggleLockBid(true)">
                     <i class="fa-solid fa-lock"></i> KUNCI WAR BID (LOCK)
                 </button>
                 <button class="btn-sm" style="background: var(--green); color:#000; font-weight:bold; flex:1;" onclick="toggleLockBid(false)">
                     <i class="fa-solid fa-lock-open"></i> BUKA WAR BID (UNLOCK)
+                </button>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-sm" style="background: #6c757d; color:#fff; font-weight:bold; flex:1;" onclick="toggleHideAnon(true)">
+                    <i class="fa-solid fa-eye-slash"></i> SEMBUNYIKAN ANONIM (HIDE)
+                </button>
+                <button class="btn-sm" style="background: var(--gold); color:#000; font-weight:bold; flex:1;" onclick="toggleHideAnon(false)">
+                    <i class="fa-solid fa-eye"></i> BUKA IDENTITAS ANONIM (UNHIDE)
                 </button>
             </div>
         </div>
@@ -333,8 +342,10 @@
     let highestAmount = 25000;
     let isAdmin = false;
     let isWarBidLocked = false;
+    let hideAnonGlobally = true; // Status toggle HIDE / UNHIDE untuk penonton
     let html5QrcodeScanner = null;
-    let cachedBidsSnapshot = null; // Menyimpan cache data riwayat bid
+    let cachedBidsSnapshot = null;
+    let cachedStateData = null;
 
     // SLIDER FOTO FUNCTION
     function moveSlide(direction) {
@@ -346,8 +357,10 @@
     // LISTEN DATA REALTIME (DATABASE)
     db.ref('auction_state').on('value', snapshot => {
         const data = snapshot.val();
+        if(!data) return;
 
-        if(!data || data.targetEndTime === undefined) {
+        cachedStateData = data;
+        if(data.targetEndTime === undefined) {
             setGlobalDuration(12); 
             return;
         }
@@ -355,15 +368,11 @@
         targetEndTime = data.targetEndTime;
         highestAmount = data.highestAmount || 25000;
         isWarBidLocked = data.isLocked || false;
+        hideAnonGlobally = data.hideAnonGlobally !== undefined ? data.hideAnonGlobally : true;
 
         document.getElementById("highestPrice").innerText = `Rp ${highestAmount.toLocaleString('id-ID')}`;
 
-        if(data.highestBidder) {
-            const nameShow = data.highestBidder.isAnon 
-                ? "User_*** (Anonim)" 
-                : `${data.highestBidder.displayName} (@${data.highestBidder.username})`;
-            document.getElementById("highestBidder").innerText = `Oleh: ${nameShow}`;
-        }
+        updateHighestBidderDisplay();
 
         // TAMPILAN LOCK STATUS SINKRON REALTIME
         const lockBanner = document.getElementById("lockBanner");
@@ -384,7 +393,27 @@
                 stepVerifyQR.style.display = "block";
             }
         }
+
+        renderBids(); // Re-render riwayat saat state berubah
     });
+
+    function updateHighestBidderDisplay() {
+        if(!cachedStateData || !cachedStateData.highestBidder) {
+            document.getElementById("highestBidder").innerText = `Oleh: Belum Ada`;
+            return;
+        }
+
+        const b = cachedStateData.highestBidder;
+        let nameShow = "";
+
+        if (b.isAnon && hideAnonGlobally) {
+            nameShow = "User_*** (Anonim)";
+        } else {
+            nameShow = `${b.displayName} (@${b.username}) ${b.isAnon ? '<span style="color:var(--gold); font-size:0.75rem;">(Anonim Mode)</span>' : ''}`;
+        }
+
+        document.getElementById("highestBidder").innerHTML = `Oleh: ${nameShow}`;
+    }
 
     // LISTEN RIWAYAT BID & FUNGSI RENDER
     db.ref('bids').on('value', snapshot => {
@@ -409,12 +438,12 @@
                 ? b.robloxLink 
                 : `https://www.roblox.com/search/users?keyword=${b.username}`;
 
-            // 1. TAMPILAN PUBLIK
+            // 1. TAMPILAN PUBLIK / PENONTON LIVE STREAM
             let namePublic = "";
-            if (b.isAnon) {
+            if (b.isAnon && hideAnonGlobally) {
                 namePublic = `<span style="color:#8d99ae; font-style:italic;">User_*** (Anonim)</span>`;
             } else {
-                namePublic = `<strong style="color: #fff;">${b.displayName} (@${b.username})</strong>`;
+                namePublic = `<strong style="color: #fff;">${b.displayName} (@${b.username})</strong> ${b.isAnon ? '<span style="color:var(--gold); font-size:0.7rem;">[Anonim]</span>' : ''}`;
             }
 
             // 2. TAMPILAN KHUSUS OWNER / ADMIN PANEL
@@ -447,6 +476,8 @@
             `;
             list.insertBefore(li, list.firstChild);
         });
+
+        updateHighestBidderDisplay();
     }
 
     // SINKRONISASI WAKTU REALTIME GLOBAL
@@ -505,6 +536,12 @@
         alert(status ? "War Bid Berhasil DIKUNCI!" : "War Bid Berhasil DIBUKA!");
     }
 
+    // FUNGSI HIDE / UNHIDE ANONIM UNTUK TAMPILAN LIVE
+    function toggleHideAnon(status) {
+        db.ref('auction_state').update({ hideAnonGlobally: status });
+        alert(status ? "Mode Anonim Diterapkan (Nama disembunyikan untuk penonton Live)!" : "Mode Anonim DIBUKA! (Seluruh identitas asli penawar terlihat secara Live)");
+    }
+
     // FITUR KAMERA SCAN BARCODE/QR CODE
     function startCameraScanner() {
         const readerDiv = document.getElementById("reader");
@@ -542,14 +579,13 @@
         });
     }
 
-    // SCAN QR DARI UPLOAD FILE (DENGAN ADVANCED ENHANCEMENT & AUTO-ROTATE)
+    // SCAN QR DARI UPLOAD FILE
     async function scanQRFromFile(e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const html5QrCode = new Html5Qrcode("reader");
 
-        // 1. Coba scan file asli terlebih dahulu
         try {
             const decodedText = await html5QrCode.scanFile(file, true);
             document.getElementById("robloxLinkInput").value = decodedText;
@@ -560,7 +596,6 @@
             console.log("Scan file asli gagal. Memulai auto-enhance & auto-rotate...");
         }
 
-        // 2. Jika gagal, olah gambar lewat Canvas
         const image = new Image();
         image.src = URL.createObjectURL(file);
         await new Promise(resolve => image.onload = resolve);
@@ -597,14 +632,14 @@
                 isSuccess = true;
                 break;
             } catch (error) {
-                // Lanjut mencoba variasi rotasi berikutnya
+                // Try next rotation
             }
         }
 
         html5QrCode.clear();
 
         if (!isSuccess) {
-            alert("Gagal membaca QR dari file. Solusi:\n1. Crop/potong gambar hingga hanya menyisakan area QR code.\n2. Atau masukkan link/username Roblox secara manual pada kolom input di bawah.");
+            alert("Gagal membaca QR dari file. Masukkan link/username Roblox secara manual.");
         }
     }
 
@@ -715,7 +750,7 @@
             isAdmin = true;
             document.getElementById("adminPanel").classList.add("active");
             alert("Login Owner Berhasil!");
-            renderBids(); // LANGSUNG RENDER REFRESH RIWAYAT AGAR MUNCUL VISIT & KICK
+            renderBids();
         } else {
             alert("PIN Salah!");
         }
