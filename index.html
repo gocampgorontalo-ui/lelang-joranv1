@@ -386,7 +386,8 @@
     });
 
     // LISTEN RIWAYAT BID
-    db.ref('bids').on('value', snapshot => {
+    // LISTEN RIWAYAT BID (VISIT PROFIL KHUSUS OWNER/ADMIN)
+db.ref('bids').on('value', snapshot => {
     const list = document.getElementById("historyList");
     list.innerHTML = "";
 
@@ -396,44 +397,46 @@
         const li = document.createElement("li");
         li.className = "history-item";
 
-        // Tentukan Link Profil Roblox Player
+        // Tentukan Link Profil Roblox
         const profileUrl = b.robloxLink && b.robloxLink.includes("roblox.com")
             ? b.robloxLink 
             : `https://www.roblox.com/search/users?keyword=${b.username}`;
 
-        // Format Tampilan Nama & Link Visit Profil
+        // 1. TAMPILAN PUBLIK (Sama Sekali Tanpa Link Profil)
         let namePublic = "";
-        
         if (b.isAnon) {
-            namePublic = `<span style="color:#8d99ae;">User_*** (Anonim)</span>`;
+            namePublic = `<span style="color:#8d99ae; font-style:italic;">User_*** (Anonim)</span>`;
         } else {
-            namePublic = `
-                <a href="${profileUrl}" target="_blank" style="color: #fff; text-decoration: none; font-weight: 700; transition: 0.2s;" onmouseover="this.style.color='var(--blue)'" onmouseout="this.style.color='#fff'">
-                    ${b.displayName} (@${b.username}) 
-                    <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.75rem; color: var(--blue); margin-left: 4px;" title="Visit Profil Roblox"></i>
-                </a>
-            `;
+            namePublic = `<strong style="color: #fff;">${b.displayName} (@${b.username})</strong>`;
         }
 
-        // Tampilan Tambahan Khusus Mode Owner / Admin
+        // 2. TAMPILAN KHUSUS OWNER / ADMIN PANEL
         let adminInfoHTML = "";
-        if(isAdmin) {
+        if (isAdmin) {
             adminInfoHTML = `
-                <div style="font-size:0.75rem; color:var(--gold); margin-top:3px;">
-                    [OWNER VIEW]: ${b.displayName} (@${b.username}) 
-                    ${b.isAnon ? '<span style="color:var(--red);">(ANONIM)</span>' : ''}
-                    <br><a href="${profileUrl}" target="_blank" style="color:var(--blue); font-weight:bold;">[Buka Profil Roblox]</a>
-                    <button onclick="kickPlayer('${key}')" style="background:var(--red); color:white; border:none; padding:2px 6px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-left:5px;">Kick Scammer</button>
+                <div style="font-size:0.75rem; color:var(--gold); margin-top:4px; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                    <i class="fa-solid fa-user-shield"></i> <strong>[OWNER ACCESS]</strong>: 
+                    ${b.displayName} (@${b.username}) ${b.isAnon ? '<span style="color:var(--red); font-weight:bold;">(MODE ANONIM)</span>' : ''}
+                    <div style="margin-top:3px;">
+                        <a href="${profileUrl}" target="_blank" style="color:var(--blue); font-weight:bold; text-decoration:underline;">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Profil Roblox
+                        </a>
+                        <button onclick="kickPlayer('${key}')" style="background:var(--red); color:white; border:none; padding:2px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-left:8px; font-weight:bold;">
+                            <i class="fa-solid fa-user-slash"></i> Kick Scammer
+                        </button>
+                    </div>
                 </div>
             `;
         }
 
         li.innerHTML = `
-            <div>
-                <div>${namePublic}</div>
+            <div style="width: 100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>${namePublic}</div>
+                    <span style="color: var(--green); font-weight: bold;">Rp ${parseInt(b.amount).toLocaleString('id-ID')}</span>
+                </div>
                 ${adminInfoHTML}
             </div>
-            <span style="color: var(--green); font-weight: bold;">Rp ${parseInt(b.amount).toLocaleString('id-ID')}</span>
         `;
         list.insertBefore(li, list.firstChild);
     });
