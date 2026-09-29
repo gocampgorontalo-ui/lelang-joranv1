@@ -394,7 +394,6 @@
     let html5QrcodeScanner = null;
     let cachedBidsSnapshot = null;
     let cachedStateData = null;
-
     let lastBidTime = 0;
 
     function moveSlide(direction) {
@@ -438,7 +437,6 @@
 
         const lockBanner = document.getElementById("lockBanner");
         const stepVerifyQR = document.getElementById("stepVerifyQR");
-        document.getElementById("stepIdentity");
         const bidBox = document.getElementById("bidBox");
 
         if (isWarBidLocked) {
@@ -595,43 +593,62 @@
         alert(status ? "Mode Anonim Diterapkan!" : "Mode Anonim DIBUKA!");
     }
 
-    // EXTRACTION FUNCTION TERBARU: MENDUKUNG SHARE LINK & PROFILE LINK REGULAR
-    function extractRobloxUser(url) {
-        if (!url) return null;
+    // FUNGSI PROSES VERIFIKASI LINK ROBLOX
+    async function processRobloxVerification(scannedUrl = null) {
+        if (isWarBidLocked) {
+            alert("War Bid saat ini sedang dikunci oleh Kylee.");
+            return;
+        }
 
-        // 1. Format biasa: roblox.com/users/123456/profile
-        const matchUsers = url.match(/roblox\.com\/users\/(\d+)/i);
+        const linkVal = scannedUrl ? scannedUrl : document.getElementById("robloxLinkInput").value.trim();
+
+        if(!linkVal) {
+            alert("Harap masukkan link profil resmi / link share Roblox!");
+            return;
+        }
+
+        // Buka field username agar pengguna bisa mengisinya sendiri
+        const uInput = document.getElementById("inputUsername");
+        uInput.removeAttribute("readonly");
+        uInput.style.background = "#0a0c14";
+        uInput.style.color = "#fff";
+        uInput.style.cursor = "text";
+
+        // Cek apakah berupa link biasa yang berisi ID User (/users/12345/profile)
+        const matchUsers = linkVal.match(/roblox\.com\/users\/(\d+)/i);
+        
         if (matchUsers && matchUsers[1]) {
-            return {
-                id: matchUsers[1],
-                cleanUrl: `https://www.roblox.com/users/${matchUsers[1]}/profile`
-            };
+            const userId = matchUsers[1];
+            document.getElementById("robloxLinkInput").value = `https://www.roblox.com/users/${userId}/profile`;
+            
+            // Coba Ambil Data Otomatis via API
+            try {
+                const res = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+                if (res.ok) {
+                    const userData = await res.json();
+                    document.getElementById("inputDisplayName").value = userData.displayName || "";
+                    document.getElementById("inputUsername").value = userData.name || "";
+                } else {
+                    document.getElementById("inputDisplayName").value = "";
+                    document.getElementById("inputUsername").value = "";
+                }
+            } catch (e) {
+                document.getElementById("inputDisplayName").value = "";
+                document.getElementById("inputUsername").value = "";
+            }
+        } else {
+            // Jika berupa Share Link atau Barcode, Kosongkan Form agarDiisi Manual
+            document.getElementById("robloxLinkInput").value = linkVal;
+            document.getElementById("inputDisplayName").value = "";
+            document.getElementById("inputUsername").value = "";
         }
 
-        // 2. Format Share Link: roblox.com/share?code=3a75ee4e38813d449442b259805557db...
-        const matchShare = url.match(/roblox\.com\/share\?code=([a-f0-9]+)/i);
-        if (matchShare && matchShare[1]) {
-            // Ekstrak kode unik share roblox
-            const shareCode = matchShare[1].substring(0, 10);
-            return {
-                id: "Share_" + shareCode,
-                cleanUrl: url
-            };
-        }
-
-        // 3. Jika memasukkan URL Roblox yang umum
-        if (url.includes("roblox.com/")) {
-            const randomId = Math.floor(1000000 + Math.random() * 9000000);
-            return {
-                id: randomId.toString(),
-                cleanUrl: url
-            };
-        }
-
-        return null;
+        // Pindah ke Langkah 2 (Pengisian Identitas)
+        document.getElementById("stepVerifyQR").style.display = "none";
+        document.getElementById("stepIdentity").style.display = "block";
     }
 
-    // SCANNER KAMERA INSTAN
+    // SCANNER KAMERA
     function startCameraScanner() {
         const readerDiv = document.getElementById("reader");
         readerDiv.style.display = "block";
@@ -641,10 +658,7 @@
         }
 
         html5QrcodeScanner = new Html5Qrcode("reader");
-        const config = { 
-            fps: 30, 
-            qrbox: { width: 280, height: 280 }
-        };
+        const config = { fps: 30, qrbox: { width: 280, height: 280 } };
 
         html5QrcodeScanner.start(
             { facingMode: "environment" },
@@ -661,7 +675,7 @@
         });
     }
 
-    // SCAN UPLOAD GAMBAR INSTAN
+    // SCAN UPLOAD GAMBAR
     async function scanQRFromFile(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -699,37 +713,8 @@
         if (decodedText) {
             processRobloxVerification(decodedText);
         } else {
-            alert("❌ QR Code tidak terbaca dari gambar!\nSilakan gunakan Opsi 3 (Input Link Roblox) langsung.");
+            alert("❌ QR Code tidak terbaca!\nSilakan gunakan Opsi 3 (Input Link Roblox) langsung.");
         }
-    }
-
-    function processRobloxVerification(scannedUrl = null) {
-        if (isWarBidLocked) {
-            alert("War Bid saat ini sedang dikunci oleh Kylee.");
-            return;
-        }
-
-        const linkVal = scannedUrl ? scannedUrl : document.getElementById("robloxLinkInput").value.trim();
-
-        if(!linkVal) {
-            alert("Harap masukkan link profil resmi / link share Roblox!");
-            return;
-        }
-
-        const robloxData = extractRobloxUser(linkVal);
-
-        if(!robloxData) {
-            alert("❌ LINK INVALID!\nFormat link Roblox tidak dikenali.");
-            return;
-        }
-
-        document.getElementById("robloxLinkInput").value = robloxData.cleanUrl;
-        document.getElementById("inputUsername").value = "User_" + robloxData.id;
-        document.getElementById("inputDisplayName").value = "Player_" + robloxData.id;
-
-        // INSTAN PINDAH KE STEP 2
-        document.getElementById("stepVerifyQR").style.display = "none";
-        document.getElementById("stepIdentity").style.display = "block";
     }
 
     function completeVerification() {
@@ -739,13 +724,16 @@
         }
 
         const dispName = document.getElementById("inputDisplayName").value.trim();
-        const uName = document.getElementById("inputUsername").value.trim();
+        let uName = document.getElementById("inputUsername").value.trim();
         const linkVal = document.getElementById("robloxLinkInput").value.trim();
 
         if(!dispName || !uName) {
-            alert("Harap isi Display Name Anda!");
+            alert("Harap lengkapi Display Name dan Username Roblox Anda!");
             return;
         }
+
+        // Hapus karakter '@' jika user tidak sengaja memasukkannya
+        if(uName.startsWith("@")) uName = uName.substring(1);
 
         const optionsWITA = { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
         const nowWITA = new Intl.DateTimeFormat('id-ID', optionsWITA).format(new Date());
@@ -757,7 +745,7 @@
             verifiedAtWITA: nowWITA
         };
 
-        alert(`Verifikasi Berhasil! Selamat datang ${currentUser.displayName}`);
+        alert(`Verifikasi Berhasil! Selamat datang ${currentUser.displayName} (@${currentUser.username})`);
         document.getElementById("stepIdentity").style.display = "none";
         document.getElementById("bidBox").style.display = "block";
         document.getElementById("bidAmountInput").value = highestAmount + 10000;
