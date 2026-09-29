@@ -274,10 +274,10 @@
             <i class="fa-solid fa-lock"></i> WAR BID BELUM DIBUKA / DIKUNCI OLEH KYLEE
         </div>
 
-        <!-- STEP 1: SCAN KAMERA / UPLOAD QR BARCODE ROBLOX -->
+        <!-- STEP 1: SCAN KAMERA / UPLOAD QR BARCODE ROBLOX / LINK RESMI -->
         <div class="verify-card" id="stepVerifyQR">
             <p style="font-size: 0.8rem; margin-bottom: 10px;">
-                <i class="fa-solid fa-qrcode"></i> <strong>Langkah 1: Scan Barcode Kamera / Upload Gambar Profil Roblox</strong>
+                <i class="fa-solid fa-qrcode"></i> <strong>Langkah 1: Scan Barcode / Masukkan Link Profil Resmi Roblox</strong>
             </p>
 
             <button class="btn-sm" style="background: var(--gold); color:#000; width:100%; margin-bottom:10px;" onclick="startCameraScanner()">
@@ -289,17 +289,23 @@
             <label style="font-size:0.75rem; color:#8d99ae;">Atau Upload File Gambar Barcode:</label>
             <input type="file" id="qrFileInput" accept="image/*" onchange="scanQRFromFile(event)">
 
-            <input type="text" id="robloxLinkInput" placeholder="Hasil Link Profil / Input Username Roblox Manual">
+            <!-- INPUT LINK ROBLOX (MENCEGAH TEKS BIASA/MANUAL) -->
+            <input type="text" id="robloxLinkInput" placeholder="Tempel Link Profil Roblox (contoh: https://www.roblox.com/users/123456/profile)">
             <button class="btn btn-blue" onclick="goToStepIdentity()">Lanjut Ke Pengisian Identitas</button>
         </div>
 
-        <!-- STEP 2: ISI IDENTITAS (DISPLAY NAME, USERNAME, & ANONIM) -->
+        <!-- STEP 2: ISI IDENTITAS (USER TERBACA OTOMATIS DARI LINK) -->
         <div class="verify-card" id="stepIdentity" style="display: none;">
             <p style="font-size: 0.8rem; margin-bottom: 10px;">
                 <i class="fa-solid fa-user-check"></i> <strong>Langkah 2: Lengkapi Profile Player</strong>
             </p>
+            
+            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Display Name Roblox (Bisa Diisi/Diubah):</label>
             <input type="text" id="inputDisplayName" placeholder="Display Name Roblox">
-            <input type="text" id="inputUsername" placeholder="Username Roblox (@username)">
+
+            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Roblox Username / ID (Terkunci & Valid):</label>
+            <!-- USERNAME DI-LOCK READONLY AGAR TIDAK BISA DIMANIPULASI MANUAL -->
+            <input type="text" id="inputUsername" placeholder="Username / ID Roblox" readonly style="background: #151824; color: var(--gold); cursor: not-allowed;">
 
             <div style="display: flex; gap: 8px; align-items: center; font-size: 0.8rem; margin-bottom: 10px; color: #8d99ae; text-align: left;">
                 <input type="checkbox" id="anonCheck">
@@ -643,11 +649,24 @@
         html5QrCode.clear();
 
         if (!isSuccess) {
-            alert("Gagal membaca QR dari file. Masukkan link/username Roblox secara manual.");
+            alert("Gagal membaca QR dari file. Pastikan memasukkan link profil resmi Roblox!");
         }
     }
 
-    // VERIFIKASI LANGKAH KEDUA
+    // EXTRACTION FUNCTION UNTUK MEMBACA KETAT LINK ROBLOX
+    function extractRobloxUser(url) {
+        // Mendukung format: roblox.com/users/ID/profile ATAU roblox.com/users/ID
+        const match = url.match(/roblox\.com\/users\/(\d+)/i);
+        if (match && match[1]) {
+            return {
+                id: match[1],
+                cleanUrl: `https://www.roblox.com/users/${match[1]}/profile`
+            };
+        }
+        return null;
+    }
+
+    // VERIFIKASI LANGKAH KEDUA (CEGAH MANIPULASI USERNAME)
     function goToStepIdentity() {
         if (isWarBidLocked) {
             alert("War Bid saat ini sedang dikunci oleh Kylee.");
@@ -655,10 +674,27 @@
         }
 
         const linkVal = document.getElementById("robloxLinkInput").value.trim();
+
         if(!linkVal) {
-            alert("Harap Scan Kamera, Upload Gambar Barcode, atau Masukkan Link Profil!");
+            alert("Harap Scan Barcode atau Tempel Link Profil Roblox Resmi!");
             return;
         }
+
+        // VALIDASI KETAT: WAJIB MENGANDUNG LINK ROBLOX DENGAN ID USER VALID
+        const robloxData = extractRobloxUser(linkVal);
+
+        if(!robloxData) {
+            alert("❌ LINK INVALID / TEKS MANUALL DITOLAK!\n\nHarap gunakan Link Profil Resmi Roblox yang valid agar player dapat ditrack oleh Owner.\n\nContoh: https://www.roblox.com/users/12345678/profile");
+            return;
+        }
+
+        // SIMPAN LINK YANG SUDAH BERSIH SESUAI FORMAT OFFICIAL
+        document.getElementById("robloxLinkInput").value = robloxData.cleanUrl;
+        
+        // AUTO-FILL KETAT KODE ID/USERNAME & READONLY DI STEP 2
+        document.getElementById("inputUsername").value = "User_" + robloxData.id;
+        document.getElementById("inputDisplayName").value = "Player_" + robloxData.id;
+
         document.getElementById("stepVerifyQR").style.display = "none";
         document.getElementById("stepIdentity").style.display = "block";
     }
@@ -670,16 +706,12 @@
         }
 
         const dispName = document.getElementById("inputDisplayName").value.trim();
-        const uName = document.getElementById("inputUsername").value.trim().replace('@', '');
-        let linkVal = document.getElementById("robloxLinkInput").value.trim();
+        const uName = document.getElementById("inputUsername").value.trim();
+        const linkVal = document.getElementById("robloxLinkInput").value.trim();
 
         if(!dispName || !uName) {
-            alert("Harap isi Display Name dan Username Roblox Anda!");
+            alert("Harap isi Display Name Anda!");
             return;
-        }
-
-        if(!linkVal.includes("roblox.com")) {
-            linkVal = `https://www.roblox.com/search/users?keyword=${uName}`;
         }
 
         const optionsWITA = { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
@@ -733,7 +765,6 @@
         }
 
         // 2. CEK PENAWARAN TERLALU TINGGI / LOMPATAN BERISIKO (SCAM WARNING)
-        // Berisiko jika tawaran >= 2x lipat dari bid tertinggi, ATAU melompat lebih dari Rp 500.000 dari bid tertinggi
         const isRiskyJump = amount >= (highestAmount * 2) || (amount - highestAmount) >= 500000;
 
         if (isRiskyJump) {
@@ -745,7 +776,7 @@
             );
 
             if (!confirmBid) {
-                return; // Batalkan kirim bid jika penawar ragu-ragu
+                return;
             }
         }
 
