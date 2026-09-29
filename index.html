@@ -348,6 +348,9 @@
     let cachedBidsSnapshot = null;
     let cachedStateData = null;
 
+    // VARIABEL COOLDOWN SPAM BID
+    let lastBidTime = 0;
+
     // SLIDER FOTO FUNCTION
     function moveSlide(direction) {
         const slider = document.getElementById("imageSlider");
@@ -710,6 +713,17 @@
         }
 
         if(!currentUser) return;
+
+        // 1. CEK ANTI-SPAM BID (COOLDOWN 20 DETIK)
+        const now = Date.now();
+        const COOLDOWN_MS = 20000; // 20 Detik
+
+        if (now - lastBidTime < COOLDOWN_MS) {
+            const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastBidTime)) / 1000);
+            alert(`⚠️ JEDA ANTI-SPAM! Mohon tunggu ${remainingSeconds} detik lagi sebelum mengirim penawaran berikutnya.`);
+            return;
+        }
+
         const amount = parseInt(document.getElementById("bidAmountInput").value);
         const isAnon = document.getElementById("anonCheck").checked;
 
@@ -718,6 +732,26 @@
             return;
         }
 
+        // 2. CEK PENAWARAN TERLALU TINGGI / LOMPATAN BERISIKO (SCAM WARNING)
+        // Berisiko jika tawaran >= 2x lipat dari bid tertinggi, ATAU melompat lebih dari Rp 500.000 dari bid tertinggi
+        const isRiskyJump = amount >= (highestAmount * 2) || (amount - highestAmount) >= 500000;
+
+        if (isRiskyJump) {
+            const confirmBid = confirm(
+                "⚠️ PERINGATAN RESIKO KICK / SCAM BID! ⚠️\n\n" +
+                `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini (Rp ${highestAmount.toLocaleString('id-ID')}).\n\n` +
+                "Jika penawaran ini terindikasi Main-Main / Fake Bid / Scam, Owner akan MERESET/MENGHAPUS tawaran Anda dan meng-KICK Anda dari sesi lelang!\n\n" +
+                "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran ini?"
+            );
+
+            if (!confirmBid) {
+                return; // Batalkan kirim bid jika penawar ragu-ragu
+            }
+        }
+
+        // CATAT WAKTU BID BERHASIL TERKIRIM UNTUK COOLDOWN
+        lastBidTime = Date.now();
+
         const bidData = {
             displayName: currentUser.displayName,
             username: currentUser.username,
@@ -725,7 +759,7 @@
             verifiedAt: currentUser.verifiedAtWITA,
             amount: amount,
             isAnon: isAnon,
-            timestamp: Date.now()
+            timestamp: lastBidTime
         };
 
         db.ref('bids').push(bidData);
