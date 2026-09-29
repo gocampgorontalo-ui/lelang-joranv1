@@ -329,7 +329,7 @@
                 <input type="file" id="qrFileInput" accept="image/*" onchange="scanQRFromFile(event)">
             </div>
 
-            <!-- OPSI 3: INPUT LINK ROBLOX MANUAL (MENDUKUNG SHARE LINK & PROFILE LINK) -->
+            <!-- OPSI 3: INPUT LINK ROBLOX MANUAL -->
             <div class="tab-content" id="tabContent3">
                 <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Tempelkan Link Profil / Share Link Roblox Anda:</label>
                 <input type="text" id="robloxLinkInput" placeholder="https://www.roblox.com/share?code=... atau /users/123/profile">
@@ -346,8 +346,8 @@
             <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Display Name Roblox (Bisa Diisi/Diubah):</label>
             <input type="text" id="inputDisplayName" placeholder="Display Name Roblox">
 
-            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Roblox Username / ID (Terkunci & Valid):</label>
-            <input type="text" id="inputUsername" placeholder="Username / ID Roblox" readonly style="background: #151824; color: var(--gold); cursor: not-allowed;">
+            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Roblox Username / ID:</label>
+            <input type="text" id="inputUsername" placeholder="Username / ID Roblox">
 
             <div style="display: flex; gap: 8px; align-items: center; font-size: 0.8rem; margin-bottom: 10px; color: #8d99ae; text-align: left;">
                 <input type="checkbox" id="anonCheck">
@@ -377,6 +377,8 @@
 </div>
 
 <script>
+    const INITIAL_START_PRICE = 25000;
+
     const firebaseConfig = {
         databaseURL: "https://projeklelang-1e39d-default-rtdb.asia-southeast1.firebasedatabase.app"
     };
@@ -387,7 +389,7 @@
 
     let currentUser = null;
     let targetEndTime = 0;
-    let highestAmount = 25000;
+    let highestAmount = INITIAL_START_PRICE;
     let isAdmin = false;
     let isWarBidLocked = false;
     let hideAnonGlobally = true; 
@@ -427,7 +429,7 @@
         }
 
         targetEndTime = data.targetEndTime;
-        highestAmount = data.highestAmount || 25000;
+        highestAmount = data.highestAmount !== undefined ? data.highestAmount : INITIAL_START_PRICE;
         isWarBidLocked = data.isLocked || false;
         hideAnonGlobally = data.hideAnonGlobally !== undefined ? data.hideAnonGlobally : true;
 
@@ -607,21 +609,18 @@
             return;
         }
 
-        // Buka field username agar pengguna bisa mengisinya sendiri
         const uInput = document.getElementById("inputUsername");
         uInput.removeAttribute("readonly");
         uInput.style.background = "#0a0c14";
         uInput.style.color = "#fff";
         uInput.style.cursor = "text";
 
-        // Cek apakah berupa link biasa yang berisi ID User (/users/12345/profile)
         const matchUsers = linkVal.match(/roblox\.com\/users\/(\d+)/i);
         
         if (matchUsers && matchUsers[1]) {
             const userId = matchUsers[1];
             document.getElementById("robloxLinkInput").value = `https://www.roblox.com/users/${userId}/profile`;
             
-            // Coba Ambil Data Otomatis via API
             try {
                 const res = await fetch(`https://users.roblox.com/v1/users/${userId}`);
                 if (res.ok) {
@@ -637,13 +636,11 @@
                 document.getElementById("inputUsername").value = "";
             }
         } else {
-            // Jika berupa Share Link atau Barcode, Kosongkan Form agarDiisi Manual
             document.getElementById("robloxLinkInput").value = linkVal;
             document.getElementById("inputDisplayName").value = "";
             document.getElementById("inputUsername").value = "";
         }
 
-        // Pindah ke Langkah 2 (Pengisian Identitas)
         document.getElementById("stepVerifyQR").style.display = "none";
         document.getElementById("stepIdentity").style.display = "block";
     }
@@ -732,7 +729,6 @@
             return;
         }
 
-        // Hapus karakter '@' jika user tidak sengaja memasukkannya
         if(uName.startsWith("@")) uName = uName.substring(1);
 
         const optionsWITA = { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
@@ -789,7 +785,7 @@
             const confirmBid = confirm(
                 "⚠️ PERINGATAN RESIKO KICK / SCAM BID! ⚠️\n\n" +
                 `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini.\n\n` +
-                "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran ini?"
+                "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran melebihinya?"
             );
 
             if (!confirmBid) return;
@@ -847,14 +843,47 @@
     function clearBids() {
         if(confirm("Yakin ingin menghapus seluruh riwayat bid?")) {
             db.ref('bids').remove();
-            db.ref('auction_state').update({ highestAmount: 25000, highestBidder: null });
+            db.ref('auction_state').update({ highestAmount: INITIAL_START_PRICE, highestBidder: null });
         }
     }
 
-    function kickPlayer(bidKey) {
-        if(confirm("Kick/tendang player scammer ini dari lelang?")) {
-            db.ref(`bids/${bidKey}`).remove();
+    // PERBAIKAN LOGIKA KICK PLAYER SCAMMER
+    async function kickPlayer(bidKey) {
+        if(!confirm("Kick/tendang player scammer ini dari lelang?")) return;
+
+        // 1. Hapus bid scammer dari Firebase Realtime DB
+        await db.ref(`bids/${bidKey}`).remove();
+
+        // 2. Ambil seluruh sisa riwayat bid
+        const snapshot = await db.ref('bids').once('value');
+        const remainingBids = snapshot.val();
+
+        if (remainingBids) {
+            let maxBid = null;
+            let maxAmount = INITIAL_START_PRICE;
+
+            // Cari bid terbesar sah dari sisa penawar
+            Object.values(remainingBids).forEach(b => {
+                if (parseInt(b.amount) > maxAmount) {
+                    maxAmount = parseInt(b.amount);
+                    maxBid = b;
+                }
+            });
+
+            // Update status lelang global ke bid terbesar yang sah
+            await db.ref('auction_state').update({
+                highestAmount: maxAmount,
+                highestBidder: maxBid
+            });
+        } else {
+            // Jika semua bid habis terhapus, kembalikan ke harga awal lelang (Rp 25.000)
+            await db.ref('auction_state').update({
+                highestAmount: INITIAL_START_PRICE,
+                highestBidder: null
+            });
         }
+
+        alert("Player berhasil di-kick dan nominal lelang telah dikembalikan ke penawaran sah terbesar saat ini.");
     }
 </script>
 </body>
