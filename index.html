@@ -220,10 +220,10 @@
 
         <div class="badge-container">
             <span class="badge"><i class="fa-solid fa-award"></i> Rod 1 Anniversary</span>
-            <span class="badge"><i class="fa-solid fa-id-card"></i> Icon Nametag 1Year 😜</span>
+            <span class="badge"><i class="fa-solid fa-id-card"></i> Icon Nametag 1Year </span>
             <span class="badge badge-gold"><i class="fa-solid fa-crown"></i> Only One Person Has It</span>
-            <span class="badge"><i class="fa-solid fa-gem"></i> Rarity Unknown 🪝</span>
-            <span class="badge badge-blue"><i class="fa-solid fa-shield-halved"></i> Realtime Verification 🔏</span>
+            <span class="badge"><i class="fa-solid fa-gem"></i> Rarity Unknown </span>
+            <span class="badge badge-blue"><i class="fa-solid fa-shield-halved"></i> Realtime Verification </span>
         </div>
     </div>
 
@@ -466,22 +466,70 @@
     }
 
     // SCAN QR DARI UPLOAD FILE (OPTIMIZED & FAST)
-    function scanQRFromFile(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+   // FUNGSI UPLOAD QR DENGAN AUTO-ROTATE CANVAS (KHUSUS UPLOAD FILE GAMBAR MIRING)
+async function scanQRFromFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        const html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.scanFile(file, true)
-            .then(decodedText => {
-                document.getElementById("robloxLinkInput").value = decodedText;
-                alert("Barcode Profil Berhasil Terbaca dari Gambar!");
-                html5QrCode.clear();
-            })
-            .catch(err => {
-                alert("Gagal membaca QR dari file. Pastikan posisi gambar terlihat jelas.");
-                html5QrCode.clear();
-            });
+    const html5QrCode = new Html5Qrcode("reader");
+
+    // 1. Coba scan gambar asli terlebih dahulu
+    try {
+        const decodedText = await html5QrCode.scanFile(file, true);
+        document.getElementById("robloxLinkInput").value = decodedText;
+        alert("Barcode Profil Berhasil Terbaca!");
+        html5QrCode.clear();
+        return;
+    } catch (err) {
+        console.log("Scan file asli gagal (QR miring). Memulai auto-rotate canvas...");
     }
+
+    // 2. Jika gagal, buat Canvas untuk memutar gambar miring secara otomatis
+    const image = new Image();
+    image.src = URL.createObjectURL(file);
+    await new Promise(resolve => image.onload = resolve);
+
+    // Daftar sudut kemiringan yang dicoba untuk meluruskan QR Roblox (-20 deg s/d 20 deg & 90 deg)
+    const anglesToTry = [-20, -15, -10, 10, 15, 20, 90, -90];
+    let isSuccess = false;
+
+    for (let angle of anglesToTry) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const rad = (angle * Math.PI) / 180;
+        const sin = Math.abs(Math.sin(rad));
+        const cos = Math.abs(Math.cos(rad));
+
+        // Sesuaikan ukuran canvas agar gambar tidak terpotong saat diputar
+        canvas.width = image.width * cos + image.height * sin;
+        canvas.height = image.width * sin + image.height * cos;
+
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(image, -image.width / 2, -image.height / 2);
+
+        // Convert canvas ke blob file untuk dieksekusi scanner
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const rotatedFile = new File([blob], "rotated.png", { type: "image/png" });
+
+        try {
+            const decodedText = await html5QrCode.scanFile(rotatedFile, false);
+            document.getElementById("robloxLinkInput").value = decodedText;
+            alert("Barcode Profil Berhasil Terbaca!");
+            isSuccess = true;
+            break; // Berhasil terbaca, hentikan perulangan
+        } catch (error) {
+            // Lanjut ke sudut berikutnya jika belum pas
+        }
+    }
+
+    html5QrCode.clear();
+
+    if (!isSuccess) {
+        alert("Gagal membaca QR dari file. Pastikan posisi gambar terlihat jelas atau masukkan link/username secara manual.");
+    }
+}
 
     // VERIFIKASI LANGKAH KEDUA
     function goToStepIdentity() {
