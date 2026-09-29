@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rod Auction Pro - Realtime Verified (WITA)</title>
+    <title> Lelang Rod Special 1 Year - Realtime Lelang </title>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -175,8 +175,8 @@
 
 <div class="container">
     <div class="navbar">
-        <div style="font-weight: 800; color: var(--gold);"><i class="fa-solid fa-fish"></i> LELANG ROD REALTIME PRO (WITA)</div>
-        <button class="btn-sm" style="border-color: var(--gold); color: var(--gold);" onclick="loginAdmin()">Panel Control Admin</button>
+        <div style="font-weight: 800; color: var(--gold);"><i class="fa-solid fa-fish"></i> LELANG ROD REALTIME "GoCamp Gorontalo" </div>
+        <button class="btn-sm" style="border-color: var(--gold); color: var(--gold);" onclick="loginAdmin()">Panel Control Developer</button>
     </div>
 
     <!-- PANEL ADMIN REALTIME OWNER -->
@@ -185,7 +185,7 @@
 
         <!-- KONTROL LOCK / UNLOCK WAR BID & HIDE/UNHIDE ANONIM -->
         <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
-            <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Akses Bidding & Mode Tampilan Live Stream:</label>
+            <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Akses Bidding & Mode Tampilan:</label>
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                 <button class="btn-sm" style="background: var(--red); color:#fff; font-weight:bold; flex:1;" onclick="toggleLockBid(true)">
                     <i class="fa-solid fa-lock"></i> KUNCI WAR BID (LOCK)
@@ -259,7 +259,7 @@
     <!-- KANAN: WAR BID PANEL -->
     <div class="card">
         <div class="timer-box">
-            <small style="color: #8d99ae;">SISA WAKTU (WAR TIME GLOBAL)</small>
+            <small style="color: #8d99ae;">Sisa Waktu *WAR TIME GORONTALO*</small>
             <div class="timer-val" id="timer">Memuat Waktu...</div>
         </div>
 
@@ -313,16 +313,17 @@
         <div id="bidBox" style="display: none;">
             <div class="bid-controls">
                 <button class="btn-sm" onclick="adjustAmount(-5000)">-5k</button>
+                <button class="btn-sm" onclick="adjustAmount(5000)">+5k</button>
                 <button class="btn-sm" onclick="adjustAmount(10000)">+10k</button>
                 <button class="btn-sm" onclick="adjustAmount(25000)">+25k</button>
                 <button class="btn-sm" onclick="adjustAmount(50000)">+50k</button>
             </div>
 
             <input type="number" id="bidAmountInput" placeholder="Nominal Bid Anda">
-            <button class="btn btn-green" id="btnSubmitBid" onclick="submitBid()">KIRIM PENAWARAN (BID)</button>
+            <button class="btn btn-green" id="btnSubmitBid" onclick="submitBid()">Kirim Penawaran (BID)</button>
         </div>
 
-        <h4 style="margin-top: 15px; font-size: 0.85rem; color: #8d99ae;">Riwayat Penawaran & Player War:</h4>
+        <h4 style="margin-top: 15px; font-size: 0.85rem; color: #8d99ae;">Riwayat Penawaran & Player War Rod:</h4>
         <ul class="history-list" id="historyList"></ul>
     </div>
 </div>
@@ -342,7 +343,7 @@
     let highestAmount = 25000;
     let isAdmin = false;
     let isWarBidLocked = false;
-    let hideAnonGlobally = true; // Status toggle HIDE / UNHIDE untuk penonton
+    let hideAnonGlobally = true; 
     let html5QrcodeScanner = null;
     let cachedBidsSnapshot = null;
     let cachedStateData = null;
@@ -394,7 +395,7 @@
             }
         }
 
-        renderBids(); // Re-render riwayat saat state berubah
+        renderBids(); 
     });
 
     function updateHighestBidderDisplay() {
@@ -407,7 +408,7 @@
         let nameShow = "";
 
         if (b.isAnon && hideAnonGlobally) {
-            nameShow = "User_*** (Anonim)";
+            nameShow = "User_*** (Anonim )";
         } else {
             nameShow = `${b.displayName} (@${b.username}) ${b.isAnon ? '<span style="color:var(--gold); font-size:0.75rem;">(Anonim Mode)</span>' : ''}`;
         }
@@ -483,7 +484,7 @@
     // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
         if(targetEndTime === -1) {
-            document.getElementById("timer").innerText = "DILANJUTKAN (TANPA TIMER)";
+            document.getElementById("timer").innerText = "Dilanjutkan *TANPA TIMER*";
             document.getElementById("timer").style.color = "var(--gold)";
             return;
         }
@@ -539,7 +540,7 @@
     // FUNGSI HIDE / UNHIDE ANONIM UNTUK TAMPILAN LIVE
     function toggleHideAnon(status) {
         db.ref('auction_state').update({ hideAnonGlobally: status });
-        alert(status ? "Mode Anonim Diterapkan (Nama disembunyikan untuk penonton Live)!" : "Mode Anonim DIBUKA! (Seluruh identitas asli penawar terlihat secara Live)");
+        alert(status ? "Mode Anonim Diterapkan (Nama disembunyikan)!" : "Mode Anonim DIBUKA! (Seluruh identitas asli penawar terlihat)");
     }
 
     // FITUR KAMERA SCAN BARCODE/QR CODE
@@ -646,7 +647,7 @@
     // VERIFIKASI LANGKAH KEDUA
     function goToStepIdentity() {
         if (isWarBidLocked) {
-            alert("War Bid saat ini sedang dikunci oleh admin.");
+            alert("War Bid saat ini sedang dikunci oleh Kylee.");
             return;
         }
 
@@ -661,7 +662,7 @@
 
     function completeVerification() {
         if (isWarBidLocked) {
-            alert("War Bid saat ini sedang dikunci oleh admin.");
+            alert("War Bid saat ini sedang dikunci oleh Kylee.");
             return;
         }
 
@@ -745,14 +746,14 @@
 
     // KONTROL PANEL ADMIN / OWNER
     function loginAdmin() {
-        const pin = prompt("Masukkan PIN Admin:");
+        const pin = prompt("Masukkan PIN Control:");
         if(pin === "324121") {
             isAdmin = true;
             document.getElementById("adminPanel").classList.add("active");
             alert("Login Owner Berhasil!");
             renderBids();
         } else {
-            alert("PIN Salah!");
+            alert("PIN Salah, Jang bapaksa plis!!!");
         }
     }
 
