@@ -334,6 +334,7 @@
     let isAdmin = false;
     let isWarBidLocked = false;
     let html5QrcodeScanner = null;
+    let cachedBidsSnapshot = null; // Menyimpan cache data riwayat bid
 
     // SLIDER FOTO FUNCTION
     function moveSlide(direction) {
@@ -385,62 +386,68 @@
         }
     });
 
-    // LISTEN RIWAYAT BID
-    // LISTEN RIWAYAT BID (VISIT PROFIL KHUSUS OWNER/ADMIN)
-db.ref('bids').on('value', snapshot => {
-    const list = document.getElementById("historyList");
-    list.innerHTML = "";
+    // LISTEN RIWAYAT BID & FUNGSI RENDER
+    db.ref('bids').on('value', snapshot => {
+        cachedBidsSnapshot = snapshot;
+        renderBids();
+    });
 
-    snapshot.forEach(child => {
-        const key = child.key;
-        const b = child.val();
-        const li = document.createElement("li");
-        li.className = "history-item";
+    function renderBids() {
+        const list = document.getElementById("historyList");
+        list.innerHTML = "";
 
-        // Tentukan Link Profil Roblox
-        const profileUrl = b.robloxLink && b.robloxLink.includes("roblox.com")
-            ? b.robloxLink 
-            : `https://www.roblox.com/search/users?keyword=${b.username}`;
+        if (!cachedBidsSnapshot) return;
 
-        // 1. TAMPILAN PUBLIK (Sama Sekali Tanpa Link Profil)
-        let namePublic = "";
-        if (b.isAnon) {
-            namePublic = `<span style="color:#8d99ae; font-style:italic;">User_*** (Anonim)</span>`;
-        } else {
-            namePublic = `<strong style="color: #fff;">${b.displayName} (@${b.username})</strong>`;
-        }
+        cachedBidsSnapshot.forEach(child => {
+            const key = child.key;
+            const b = child.val();
+            const li = document.createElement("li");
+            li.className = "history-item";
 
-        // 2. TAMPILAN KHUSUS OWNER / ADMIN PANEL
-        let adminInfoHTML = "";
-        if (isAdmin) {
-            adminInfoHTML = `
-                <div style="font-size:0.75rem; color:var(--gold); margin-top:4px; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
-                    <i class="fa-solid fa-user-shield"></i> <strong>[OWNER ACCESS]</strong>: 
-                    ${b.displayName} (@${b.username}) ${b.isAnon ? '<span style="color:var(--red); font-weight:bold;">(MODE ANONIM)</span>' : ''}
-                    <div style="margin-top:3px;">
-                        <a href="${profileUrl}" target="_blank" style="color:var(--blue); font-weight:bold; text-decoration:underline;">
-                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Profil Roblox
-                        </a>
-                        <button onclick="kickPlayer('${key}')" style="background:var(--red); color:white; border:none; padding:2px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-left:8px; font-weight:bold;">
-                            <i class="fa-solid fa-user-slash"></i> Kick Scammer
-                        </button>
+            // Tentukan Link Profil Roblox
+            const profileUrl = b.robloxLink && b.robloxLink.includes("roblox.com")
+                ? b.robloxLink 
+                : `https://www.roblox.com/search/users?keyword=${b.username}`;
+
+            // 1. TAMPILAN PUBLIK
+            let namePublic = "";
+            if (b.isAnon) {
+                namePublic = `<span style="color:#8d99ae; font-style:italic;">User_*** (Anonim)</span>`;
+            } else {
+                namePublic = `<strong style="color: #fff;">${b.displayName} (@${b.username})</strong>`;
+            }
+
+            // 2. TAMPILAN KHUSUS OWNER / ADMIN PANEL
+            let adminInfoHTML = "";
+            if (isAdmin) {
+                adminInfoHTML = `
+                    <div style="font-size:0.75rem; color:var(--gold); margin-top:4px; padding-top:4px; border-top:1px dashed rgba(255,255,255,0.1);">
+                        <i class="fa-solid fa-user-shield"></i> <strong>[OWNER ACCESS]</strong>: 
+                        ${b.displayName} (@${b.username}) ${b.isAnon ? '<span style="color:var(--red); font-weight:bold;">(MODE ANONIM)</span>' : ''}
+                        <div style="margin-top:3px;">
+                            <a href="${profileUrl}" target="_blank" style="color:var(--blue); font-weight:bold; text-decoration:underline;">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Visit Profil Roblox
+                            </a>
+                            <button onclick="kickPlayer('${key}')" style="background:var(--red); color:white; border:none; padding:2px 8px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-left:8px; font-weight:bold;">
+                                <i class="fa-solid fa-user-slash"></i> Kick Scammer
+                            </button>
+                        </div>
                     </div>
+                `;
+            }
+
+            li.innerHTML = `
+                <div style="width: 100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>${namePublic}</div>
+                        <span style="color: var(--green); font-weight: bold;">Rp ${parseInt(b.amount).toLocaleString('id-ID')}</span>
+                    </div>
+                    ${adminInfoHTML}
                 </div>
             `;
-        }
-
-        li.innerHTML = `
-            <div style="width: 100%;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>${namePublic}</div>
-                    <span style="color: var(--green); font-weight: bold;">Rp ${parseInt(b.amount).toLocaleString('id-ID')}</span>
-                </div>
-                ${adminInfoHTML}
-            </div>
-        `;
-        list.insertBefore(li, list.firstChild);
-    });
-});
+            list.insertBefore(li, list.firstChild);
+        });
+    }
 
     // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
@@ -535,75 +542,71 @@ db.ref('bids').on('value', snapshot => {
         });
     }
 
-    // SCAN QR DARI UPLOAD FILE (AUTO ROTATE CANVAS)
     // SCAN QR DARI UPLOAD FILE (DENGAN ADVANCED ENHANCEMENT & AUTO-ROTATE)
-async function scanQRFromFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    async function scanQRFromFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const html5QrCode = new Html5Qrcode("reader");
+        const html5QrCode = new Html5Qrcode("reader");
 
-    // 1. Coba scan file asli terlebih dahulu
-    try {
-        const decodedText = await html5QrCode.scanFile(file, true);
-        document.getElementById("robloxLinkInput").value = decodedText;
-        alert("Barcode Profil Berhasil Terbaca!");
-        html5QrCode.clear();
-        return;
-    } catch (err) {
-        console.log("Scan file asli gagal. Memulai auto-enhance & auto-rotate...");
-    }
-
-    // 2. Jika gagal, olah gambar lewat Canvas (Ubah Kontras, Skala, & Sudut Rotasi)
-    const image = new Image();
-    image.src = URL.createObjectURL(file);
-    await new Promise(resolve => image.onload = resolve);
-
-    // Daftar variasi rotasi dan kontras yang akan dicoba secara otomatis
-    const anglesToTry = [0, 90, 180, 270, -15, 15, -30, 30];
-    let isSuccess = false;
-
-    for (let angle of anglesToTry) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        const rad = (angle * Math.PI) / 180;
-        const sin = Math.abs(Math.sin(rad));
-        const cos = Math.abs(Math.cos(rad));
-
-        // Memperbesar skala canvas 1.5x agar QR code kecil jadi lebih jelas
-        const scale = 1.5;
-        canvas.width = (image.width * cos + image.height * sin) * scale;
-        canvas.height = (image.width * sin + image.height * cos) * scale;
-
-        ctx.scale(scale, scale);
-        ctx.translate((canvas.width / scale) / 2, (canvas.height / scale) / 2);
-        ctx.rotate(rad);
-        
-        // Naikkan kontras & tingkat ketajaman visual gambar
-        ctx.filter = "contrast(150%) brightness(105%)";
-        ctx.drawImage(image, -image.width / 2, -image.height / 2);
-
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-        const processedFile = new File([blob], "processed.png", { type: "image/png" });
-
+        // 1. Coba scan file asli terlebih dahulu
         try {
-            const decodedText = await html5QrCode.scanFile(processedFile, false);
+            const decodedText = await html5QrCode.scanFile(file, true);
             document.getElementById("robloxLinkInput").value = decodedText;
             alert("Barcode Profil Berhasil Terbaca!");
-            isSuccess = true;
-            break;
-        } catch (error) {
-            // Lanjut mencoba variasi rotasi berikutnya
+            html5QrCode.clear();
+            return;
+        } catch (err) {
+            console.log("Scan file asli gagal. Memulai auto-enhance & auto-rotate...");
+        }
+
+        // 2. Jika gagal, olah gambar lewat Canvas
+        const image = new Image();
+        image.src = URL.createObjectURL(file);
+        await new Promise(resolve => image.onload = resolve);
+
+        const anglesToTry = [0, 90, 180, 270, -15, 15, -30, 30];
+        let isSuccess = false;
+
+        for (let angle of anglesToTry) {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            const rad = (angle * Math.PI) / 180;
+            const sin = Math.abs(Math.sin(rad));
+            const cos = Math.abs(Math.cos(rad));
+
+            const scale = 1.5;
+            canvas.width = (image.width * cos + image.height * sin) * scale;
+            canvas.height = (image.width * sin + image.height * cos) * scale;
+
+            ctx.scale(scale, scale);
+            ctx.translate((canvas.width / scale) / 2, (canvas.height / scale) / 2);
+            ctx.rotate(rad);
+            
+            ctx.filter = "contrast(150%) brightness(105%)";
+            ctx.drawImage(image, -image.width / 2, -image.height / 2);
+
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const processedFile = new File([blob], "processed.png", { type: "image/png" });
+
+            try {
+                const decodedText = await html5QrCode.scanFile(processedFile, false);
+                document.getElementById("robloxLinkInput").value = decodedText;
+                alert("Barcode Profil Berhasil Terbaca!");
+                isSuccess = true;
+                break;
+            } catch (error) {
+                // Lanjut mencoba variasi rotasi berikutnya
+            }
+        }
+
+        html5QrCode.clear();
+
+        if (!isSuccess) {
+            alert("Gagal membaca QR dari file. Solusi:\n1. Crop/potong gambar hingga hanya menyisakan area QR code.\n2. Atau masukkan link/username Roblox secara manual pada kolom input di bawah.");
         }
     }
-
-    html5QrCode.clear();
-
-    if (!isSuccess) {
-        alert("Gagal membaca QR dari file. Solusi:\n1. Crop/potong gambar hingga hanya menyisakan area QR code.\n2. Atau masukkan link/username Roblox secara manual pada kolom input di bawah.");
-    }
-}
 
     // VERIFIKASI LANGKAH KEDUA
     function goToStepIdentity() {
@@ -712,7 +715,7 @@ async function scanQRFromFile(e) {
             isAdmin = true;
             document.getElementById("adminPanel").classList.add("active");
             alert("Login Owner Berhasil!");
-            db.ref('bids').get();
+            renderBids(); // LANGSUNG RENDER REFRESH RIWAYAT AGAR MUNCUL VISIT & KICK
         } else {
             alert("PIN Salah!");
         }
