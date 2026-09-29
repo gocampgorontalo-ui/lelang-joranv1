@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rod Auction Pro - Realtime Verified</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Firebase Realtime SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        :root {
+            --bg: #0d0f17;
+            --card: #161926;
+            --gold: #ffb703;
+            --green: #00f5d4;
+            --red: #ff0055;
+            --blue: #3a86ff;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }
+        body { background: var(--bg); color: #fff; padding: 20px 10px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1100px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+        .navbar { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 15px 20px; border-radius: 12px; border: 1px solid var(--border); }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); position: relative; }
+
+        .timer-box { background: #1a1d2e; border: 1px solid var(--border); padding: 15px; text-align: center; border-radius: 12px; margin-bottom: 15px; }
+        .timer-val { font-size: 1.8rem; font-weight: 800; color: var(--green); letter-spacing: 1px; }
+
+        .price-box { background: rgba(0, 245, 212, 0.05); border: 1px solid rgba(0, 245, 212, 0.2); text-align: center; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        .price-val { font-size: 2.2rem; font-weight: 800; color: var(--green); }
+
+        .verify-card { background: rgba(58, 134, 255, 0.05); border: 1px dashed var(--blue); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        
+        input[type="text"], input[type="number"], input[type="datetime-local"], input[type="file"] { 
+            width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: #0a0c14; color: #fff; margin-bottom: 10px; 
+        }
+        
+        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-blue { background: var(--blue); color: #fff; }
+        .btn-green { background: var(--green); color: #000; }
+        .btn-red { background: var(--red); color: #fff; }
+
+        .bid-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; }
+        .btn-sm { padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: #fff; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+
+        .history-list { list-style: none; max-height: 220px; overflow-y: auto; margin-top: 10px; }
+        .history-item { background: rgba(255,255,255,0.02); padding: 10px; border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; font-size: 0.85rem; border: 1px solid var(--border); align-items: center; }
+
+        .admin-panel { grid-column: 1 / -1; background: #201216; border: 1px solid var(--red); padding: 15px; border-radius: 12px; display: none; margin-bottom: 10px; }
+        .admin-panel.active { display: block; }
+        .qr-preview { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="navbar">
+        <div style="font-weight: 800; color: var(--gold);"><i class="fa-solid fa-fish"></i> LELANG ROD REALTIME PRO</div>
+        <button class="btn-sm" style="border-color: var(--gold); color: var(--gold);" onclick="loginAdmin()">Panel Control Admin</button>
+    </div>
+
+    <!-- PANEL ADMIN REALTIME (MANUAL SETTING & KICK SCAMMER) -->
+    <div class="admin-panel" id="adminPanel">
+        <h4 style="color: var(--red); margin-bottom: 10px;"><i class="fa-solid fa-user-shield"></i> Panel Kontrol Realtime Owner</h4>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="font-size: 0.8rem; color: #8d99ae;">Atur Waktu Selesai Lelang Secara Manual:</label>
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+                <input type="datetime-local" id="manualDateTime" style="margin-bottom:0;">
+                <button class="btn-sm" style="background: var(--blue);" onclick="setManualTime()">Set Waktu</button>
+                <button class="btn-sm" style="background: var(--gold); color: #000;" onclick="setTarget1st2359()">Set Ke Tgl 1 Jam 23:59</button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-sm" style="background: var(--red);" onclick="clearBids()">Reset Semua Bid</button>
+        </div>
+    </div>
+
+    <!-- KIRI: INFORMASI PRODUK -->
+    <div class="card">
+        <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80" style="width:100%; height:250px; object-fit:cover; border-radius:10px; margin-bottom:15px;">
+        <h2>Poseidon Trident Carbon Rod 240cm</h2>
+        <p style="color: #8d99ae; font-size: 0.85rem; margin-top: 5px;">Kondisi Perfect | Rarity Mythic | Anti Scam Protection</p>
+    </div>
+
+    <!-- KANAN: LELANG REALTIME -->
+    <div class="card">
+        <div class="timer-box">
+            <small style="color: #8d99ae;">SISA WAKTU (WAR TIME GLOBAL)</small>
+            <div class="timer-val" id="timer">Memuat Waktu...</div>
+        </div>
+
+        <div class="price-box">
+            <small style="color: #8d99ae;">BID TERTINGGI</small>
+            <div class="price-val" id="highestPrice">Rp 500.000</div>
+            <small id="highestBidder" style="color: var(--gold);">Oleh: Belum Ada</small>
+        </div>
+
+        <!-- STEP 1: VERIFIKASI QR / LINK PROFILE ROBLOX -->
+        <div class="verify-card" id="stepVerifyQR">
+            <p style="font-size: 0.8rem; margin-bottom: 10px;">
+                <i class="fa-solid fa-qrcode"></i> <strong>Langkah 1: Scan Barcode / Upload Gambar Barcode Profil Roblox</strong>
+            </p>
+            <input type="file" id="qrFileInput" accept="image/*" onchange="previewQR(event)">
+            <input type="text" id="robloxLinkInput" placeholder="Atau Tempelkan Link Profil / Username Roblox">
+            <button class="btn btn-blue" onclick="goToStepIdentity()">Lanjut Ke Pengisian Identitas</button>
+        </div>
+
+        <!-- STEP 2: ISI IDENTITAS (DISPLAY NAME, USERNAME, / ANONIM) -->
+        <div class="verify-card" id="stepIdentity" style="display: none;">
+            <p style="font-size: 0.8rem; margin-bottom: 10px;">
+                <i class="fa-solid fa-user-check"></i> <strong>Langkah 2: Atur Tampilan Identitas War Bid</strong>
+            </p>
+            <input type="text" id="inputDisplayName" placeholder="Display Name Roblox">
+            <input type="text" id="inputUsername" placeholder="Username Roblox (@username)">
+            
+            <div style="display: flex; gap: 8px; align-items: center; font-size: 0.8rem; margin-bottom: 10px; color: #8d99ae; text-align: left;">
+                <input type="checkbox" id="anonCheck">
+                <label for="anonCheck">Sembunyikan Identitas di Publik (Mode Anonim)</label>
+            </div>
+
+            <button class="btn btn-green" onclick="completeVerification()">Masuk War Bid</button>
+        </div>
+
+        <!-- FORM BIDDING (MUNCUL SETELAH TERVERIFIKASI) -->
+        <div id="bidBox" style="display: none;">
+            <div class="bid-controls">
+                <button class="btn-sm" onclick="adjustAmount(-10000)">-10k</button>
+                <button class="btn-sm" onclick="adjustAmount(10000)">+10k</button>
+                <button class="btn-sm" onclick="adjustAmount(50000)">+50k</button>
+                <button class="btn-sm" onclick="adjustAmount(100000)">+100k</button>
+            </div>
+
+            <input type="number" id="bidAmountInput" placeholder="Nominal Bid Anda">
+            <button class="btn btn-green" onclick="submitBid()">KIRIM PENAWARAN (BID)</button>
+        </div>
+
+        <h4 style="margin-top: 15px; font-size: 0.85rem; color: #8d99ae;">Riwayat Penawaran & Player War:</h4>
+        <ul class="history-list" id="historyList"></ul>
+    </div>
+</div>
+
+<script>
+    // FIREBASE DATABASE & SPREADSHEET SETUP
+    const firebaseConfig = {
+        databaseURL: "https://projeklelang-1e39d-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const SPREADSHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxwOwomSE_JOfcs5mNNdGfPQ1A3nDaVgcuGAivLihP9TXTYXFTVC_LJQUGYzvkG9LoO/exec";
+
+    let currentUser = null;
+    let qrImageData = "";
+    let targetEndTime = 0;
+    let highestAmount = 500000;
+    let isAdmin = false;
+
+    // LISTEN DATA REALTIME (SINKRONISASI WAKTU & HARGA TERTINGGI)
+    db.ref('auction_state').on('value', snapshot => {
+        const data = snapshot.val();
+        if(!data || !data.targetEndTime) {
+            // Default: Set ke tanggal 1 jam 23:59
+            setTarget1st2359();
+            return;
+        }
+
+        targetEndTime = data.targetEndTime;
+        highestAmount = data.highestAmount || 500000;
+
+        document.getElementById("highestPrice").innerText = `Rp ${highestAmount.toLocaleString('id-ID')}`;
+        
+        if(data.highestBidder) {
+            const nameShow = data.highestBidder.isAnon 
+                ? "User_*** (Anonim)" 
+                : `${data.highestBidder.displayName} (@${data.highestBidder.username})`;
+            document.getElementById("highestBidder").innerText = `Oleh: ${nameShow}`;
+        }
+    });
+
+    // LISTEN RIWAYAT BID & FITUR KICK PLAYER SCAMMER
+    db.ref('bids').on('value', snapshot => {
+        const list = document.getElementById("historyList");
+        list.innerHTML = "";
+        
+        snapshot.forEach(child => {
+            const key = child.key;
+            const b = child.val();
+            const li = document.createElement("li");
+            li.className = "history-item";
+
+            const namePublic = b.isAnon 
+                ? "User_*** (Anonim)" 
+                : `${b.displayName} (@${b.username})`;
+            
+            let adminInfoHTML = "";
+            if(isAdmin) {
+                // Admin bisa melihat Username Asli, Display Name, QR Image, dan tombol Kick
+                adminInfoHTML = `
+                    <div style="font-size:0.75rem; color:var(--gold);">
+                        [ADMIN]: ${b.displayName} (@${b.username}) ${b.robloxLink ? '| Link: ' + b.robloxLink : ''}
+                        <button onclick="kickPlayer('${key}')" style="background:red; color:white; border:none; padding:2px 5px; border-radius:4px; font-size:0.7rem; cursor:pointer; margin-left:5px;">Kick</button>
+                    </div>
+                `;
+            }
+
+            li.innerHTML = `
+                <div>
+                    <strong>${namePublic}</strong>
+                    ${adminInfoHTML}
+                </div>
+                <span style="color: var(--green); font-weight: bold;">Rp ${parseInt(b.amount).toLocaleString('id-ID')}</span>
+            `;
+            list.insertBefore(li, list.firstChild);
+        });
+    });
+
+    // HITUNG MUNDUR REALTIME (SINKRON GLOBAL)
+    setInterval(() => {
+        if(!targetEndTime) return;
+        const now = Date.now();
+        const diff = targetEndTime - now;
+
+        if (diff <= 0) {
+            document.getElementById("timer").innerText = "SELESAI";
+            document.getElementById("bidBox").style.display = "none";
+            return;
+        }
+
+        let days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        let seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        document.getElementById("timer").innerText = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+    }, 1000);
+
+    // PREVIEW QR BARCODE
+    function previewQR(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            qrImageData = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ALUR VERIFIKASI
+    function goToStepIdentity() {
+        const linkInput = document.getElementById("robloxLinkInput").value.trim();
+        if(!qrImageData && !linkInput) {
+            alert("Harap Upload Gambar Barcode QR Roblox atau Masukkan Link Profil/Username!");
+            return;
+        }
+        document.getElementById("stepVerifyQR").style.display = "none";
+        document.getElementById("stepIdentity").style.display = "block";
+    }
+
+    function completeVerification() {
+        const dispName = document.getElementById("inputDisplayName").value.trim();
+        const uName = document.getElementById("inputUsername").value.trim();
+
+        if(!dispName || !uName) {
+            alert("Harap isi Display Name dan Username Roblox Anda!");
+            return;
+        }
+
+        currentUser = {
+            displayName: dispName,
+            username: uName.replace('@', ''),
+            robloxLink: document.getElementById("robloxLinkInput").value.trim(),
+            qrImage: qrImageData
+        };
+
+        alert(`Verifikasi Berhasil! Selamat datang ${currentUser.displayName}`);
+        document.getElementById("stepIdentity").style.display = "none";
+        document.getElementById("bidBox").style.display = "block";
+        document.getElementById("bidAmountInput").value = highestAmount + 10000;
+    }
+
+    // REGULASI TAMBAH / KURANG BID
+    function adjustAmount(val) {
+        let current = parseInt(document.getElementById("bidAmountInput").value) || highestAmount;
+        let res = current + val;
+        if(res < 0) res = 0;
+        document.getElementById("bidAmountInput").value = res;
+    }
+
+    // KIRIM BID PENAWARAN
+    function submitBid() {
+        if(!currentUser) return;
+        const amount = parseInt(document.getElementById("bidAmountInput").value);
+        const isAnon = document.getElementById("anonCheck").checked;
+
+        if(isNaN(amount) || amount <= highestAmount) {
+            alert(`Bid harus lebih besar dari Rp ${highestAmount.toLocaleString('id-ID')}`);
+            return;
+        }
+
+        const bidData = {
+            displayName: currentUser.displayName,
+            username: currentUser.username,
+            robloxLink: currentUser.robloxLink || "",
+            amount: amount,
+            isAnon: isAnon,
+            timestamp: Date.now()
+        };
+
+        // 1. Update ke Realtime Database Firebase
+        db.ref('bids').push(bidData);
+        db.ref('auction_state').update({
+            highestAmount: amount,
+            highestBidder: bidData
+        });
+
+        // 2. Rekap Otomatis ke Google Spreadsheet
+        fetch(SPREADSHEET_WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bidData)
+        });
+
+        alert("Penawaran Berhasil Dikirim!");
+    }
+
+    // PANEL ADMIN CONTROL
+    function loginAdmin() {
+        const pin = prompt("Masukkan PIN Admin:");
+        if(pin === "324111") {
+            isAdmin = true;
+            document.getElementById("adminPanel").classList.add("active");
+            alert("Login Admin Berhasil!");
+            db.ref('bids').get();
+        } else {
+            alert("PIN Salah!");
+        }
+    }
+
+    function setManualTime() {
+        const val = document.getElementById("manualDateTime").value;
+        if(!val) { alert("Pilih tanggal dan jam terlebih dahulu!"); return; }
+        const targetMs = new Date(val).getTime();
+        db.ref('auction_state').update({ targetEndTime: targetMs });
+        alert("Waktu lelang berhasil diperbarui!");
+    }
+
+    function setTarget1st2359() {
+        // Otomatis menghitung tanggal 1 bulan depan jam 23:59:59
+        const now = new Date();
+        let targetMonth = now.getMonth();
+        let targetYear = now.getFullYear();
+        
+        // Jika hari ini sudah tanggal 1, target disetel ke tanggal 1 bulan berikutnya
+        targetMonth += 1;
+        if(targetMonth > 11) { targetMonth = 0; targetYear += 1; }
+
+        const targetDate = new Date(targetYear, targetMonth, 1, 23, 59, 59).getTime();
+        db.ref('auction_state').update({ targetEndTime: targetDate });
+        alert("Waktu lelang berhasil disetel ke Tanggal 1 Jam 23:59!");
+    }
+
+    function clearBids() {
+        if(confirm("Yakin ingin menghapus seluruh riwayat bid?")) {
+            db.ref('bids').remove();
+            db.ref('auction_state').update({ highestAmount: 500000, highestBidder: null });
+        }
+    }
+
+    function kickPlayer(bidKey) {
+        if(confirm("Tendang player/hapus penawaran scam ini secara realtime?")) {
+            db.ref(`bids/${bidKey}`).remove();
+        }
+    }
+</script>
+</body>
+</html>
