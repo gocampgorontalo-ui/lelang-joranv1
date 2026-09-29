@@ -262,7 +262,7 @@
 
         <!-- NOTIFIKASI WAR BID DIKUNCI -->
         <div class="lock-banner" id="lockBanner">
-            <i class="fa-solid fa-lock"></i> WAR BID BELUM DIBUKA / DIKUNCI OLEH ADMIN
+            <i class="fa-solid fa-lock"></i> WAR BID BELUM DIBUKA / DIKUNCI OLEH KYLEE
         </div>
 
         <!-- STEP 1: SCAN KAMERA / UPLOAD QR BARCODE ROBLOX -->
@@ -518,64 +518,74 @@
     }
 
     // SCAN QR DARI UPLOAD FILE (AUTO ROTATE CANVAS)
-    async function scanQRFromFile(e) {
-        const file = e.target.files[0];
-        if (!file) return;
+    // SCAN QR DARI UPLOAD FILE (DENGAN ADVANCED ENHANCEMENT & AUTO-ROTATE)
+async function scanQRFromFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        const html5QrCode = new Html5Qrcode("reader");
+    const html5QrCode = new Html5Qrcode("reader");
+
+    // 1. Coba scan file asli terlebih dahulu
+    try {
+        const decodedText = await html5QrCode.scanFile(file, true);
+        document.getElementById("robloxLinkInput").value = decodedText;
+        alert("Barcode Profil Berhasil Terbaca!");
+        html5QrCode.clear();
+        return;
+    } catch (err) {
+        console.log("Scan file asli gagal. Memulai auto-enhance & auto-rotate...");
+    }
+
+    // 2. Jika gagal, olah gambar lewat Canvas (Ubah Kontras, Skala, & Sudut Rotasi)
+    const image = new Image();
+    image.src = URL.createObjectURL(file);
+    await new Promise(resolve => image.onload = resolve);
+
+    // Daftar variasi rotasi dan kontras yang akan dicoba secara otomatis
+    const anglesToTry = [0, 90, 180, 270, -15, 15, -30, 30];
+    let isSuccess = false;
+
+    for (let angle of anglesToTry) {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+
+        const rad = (angle * Math.PI) / 180;
+        const sin = Math.abs(Math.sin(rad));
+        const cos = Math.abs(Math.cos(rad));
+
+        // Memperbesar skala canvas 1.5x agar QR code kecil jadi lebih jelas
+        const scale = 1.5;
+        canvas.width = (image.width * cos + image.height * sin) * scale;
+        canvas.height = (image.width * sin + image.height * cos) * scale;
+
+        ctx.scale(scale, scale);
+        ctx.translate((canvas.width / scale) / 2, (canvas.height / scale) / 2);
+        ctx.rotate(rad);
+        
+        // Naikkan kontras & tingkat ketajaman visual gambar
+        ctx.filter = "contrast(150%) brightness(105%)";
+        ctx.drawImage(image, -image.width / 2, -image.height / 2);
+
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const processedFile = new File([blob], "processed.png", { type: "image/png" });
 
         try {
-            const decodedText = await html5QrCode.scanFile(file, true);
+            const decodedText = await html5QrCode.scanFile(processedFile, false);
             document.getElementById("robloxLinkInput").value = decodedText;
             alert("Barcode Profil Berhasil Terbaca!");
-            html5QrCode.clear();
-            return;
-        } catch (err) {
-            console.log("Scan file asli gagal (QR miring). Memulai auto-rotate canvas...");
-        }
-
-        const image = new Image();
-        image.src = URL.createObjectURL(file);
-        await new Promise(resolve => image.onload = resolve);
-
-        const anglesToTry = [-20, -15, -10, 10, 15, 20, 90, -90];
-        let isSuccess = false;
-
-        for (let angle of anglesToTry) {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-
-            const rad = (angle * Math.PI) / 180;
-            const sin = Math.abs(Math.sin(rad));
-            const cos = Math.abs(Math.cos(rad));
-
-            canvas.width = image.width * cos + image.height * sin;
-            canvas.height = image.width * sin + image.height * cos;
-
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate(rad);
-            ctx.drawImage(image, -image.width / 2, -image.height / 2);
-
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            const rotatedFile = new File([blob], "rotated.png", { type: "image/png" });
-
-            try {
-                const decodedText = await html5QrCode.scanFile(rotatedFile, false);
-                document.getElementById("robloxLinkInput").value = decodedText;
-                alert("Barcode Profil Berhasil Terbaca!");
-                isSuccess = true;
-                break;
-            } catch (error) {
-                // Try next angle
-            }
-        }
-
-        html5QrCode.clear();
-
-        if (!isSuccess) {
-            alert("Gagal membaca QR dari file. Pastikan posisi gambar terlihat jelas atau masukkan link/username secara manual.");
+            isSuccess = true;
+            break;
+        } catch (error) {
+            // Lanjut mencoba variasi rotasi berikutnya
         }
     }
+
+    html5QrCode.clear();
+
+    if (!isSuccess) {
+        alert("Gagal membaca QR dari file. Solusi:\n1. Crop/potong gambar hingga hanya menyisakan area QR code.\n2. Atau masukkan link/username Roblox secara manual pada kolom input di bawah.");
+    }
+}
 
     // VERIFIKASI LANGKAH KEDUA
     function goToStepIdentity() {
