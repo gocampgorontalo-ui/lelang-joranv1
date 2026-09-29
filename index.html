@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rod Auction Pro - Realtime Verified (WITA)</title>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Firebase Realtime SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
+
     <!-- QR Code / Barcode Scanner Engine -->
     <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -41,11 +41,11 @@
         .price-val { font-size: 2.2rem; font-weight: 800; color: var(--green); }
 
         .verify-card { background: rgba(58, 134, 255, 0.05); border: 1px dashed var(--blue); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-        
+
         input[type="text"], input[type="number"], input[type="datetime-local"], input[type="file"] { 
             width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: #0a0c14; color: #fff; margin-bottom: 10px; 
         }
-        
+
         .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-blue { background: var(--blue); color: #fff; }
         .btn-green { background: var(--green); color: #000; }
@@ -61,6 +61,101 @@
         .admin-panel.active { display: block; }
 
         #reader { width: 100%; max-width: 350px; margin: 0 auto 10px auto; border-radius: 8px; overflow: hidden; display: none; }
+
+        /* --- STYLES SLIDER FOTO SIMETRIS & DESKRIPSI BADGES --- */
+        .slider-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-slider {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: #0a0c14;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .image-slider::-webkit-scrollbar {
+            display: none;
+        }
+
+        .slide-img {
+            width: 100%;
+            min-width: 100%;
+            height: 320px;
+            object-fit: cover;
+            scroll-snap-align: center;
+            border-radius: 14px;
+        }
+
+        .slider-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .slider-btn:hover {
+            background: var(--gold);
+            color: #000;
+        }
+
+        .slider-btn.prev { left: -12px; }
+        .slider-btn.next { right: -12px; }
+
+        .badge-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: #8d99ae;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge-gold {
+            border-color: rgba(255, 183, 3, 0.4);
+            color: var(--gold);
+            background: rgba(255, 183, 3, 0.08);
+        }
+
+        .badge-blue {
+            border-color: rgba(58, 134, 255, 0.4);
+            color: var(--blue);
+            background: rgba(58, 134, 255, 0.08);
+        }
     </style>
 </head>
 <body>
@@ -74,7 +169,7 @@
     <!-- PANEL ADMIN REALTIME OWNER -->
     <div class="admin-panel" id="adminPanel">
         <h4 style="color: var(--red); margin-bottom: 10px;"><i class="fa-solid fa-user-shield"></i> Panel Kontrol Realtime Owner</h4>
-        
+
         <!-- PENGATURAN DURASI LELANG GLOBAL -->
         <div style="margin-bottom: 15px;">
             <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Set Timer Durasi Lelang Global (Mulai dari Sekarang):</label>
@@ -85,6 +180,8 @@
                 <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(6)">6 Jam</button>
                 <button class="btn-sm" style="background: var(--gold); color:#000; font-weight:bold;" onclick="setGlobalDuration(12)">⚡ 12 Jam</button>
                 <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(24)">24 Jam (1 Hari)</button>
+                <!-- TOMBOL MENONAKTIFKAN TIMER -->
+                <button class="btn-sm" style="background: var(--red); color:#fff; font-weight:bold;" onclick="stopTimerGlobal()">⛔ Stop / Matikan Timer</button>
             </div>
 
             <label style="font-size: 0.8rem; color: #8d99ae;">Atau Set Waktu Selesai Spesifik (Format Tanggal & Jam):</label>
@@ -99,11 +196,35 @@
         </div>
     </div>
 
-    <!-- KIRI: ITEM INFO -->
-    <div class="card">
-        <img src="https://i.imgur.com/LdvwN5A.jpeg" style="width:250px; height:250px; object-fit:cover; border-radius:10px; margin-bottom:15px;">
-        <h2>Special Rod 1 Year GoCamp Gorontalo</h2>
-        <p style="color: #8d99ae; font-size: 0.85rem; margin-top: 5px;">Rod 1 Anniversary | Mendapatkan Icon Nametag 1Year😜 | Only One Person Has it on the GoCamp🥶 | Rarity Unknown🪝 | Realtime Verification🔏</p>
+    <!-- KIRI: ITEM INFO DENGAN SLIDER SIMETRIS -->
+    <div class="card" style="text-align: center;">
+        <div class="slider-wrapper">
+            <button class="slider-btn prev" onclick="moveSlide(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+            
+            <div class="image-slider" id="imageSlider">
+                <!-- Foto 1 (Utama) -->
+                <img src="https://imgur.com/LdvwN5A.jpeg" class="slide-img" alt="Rod Foto 1">
+                
+                <!-- Silakan tambahkan URL foto ke-2, ke-3, dan ke-4 di bawah ini jika ada -->
+                <!-- <img src="URL_FOTO_2" class="slide-img" alt="Rod Foto 2"> -->
+                <!-- <img src="URL_FOTO_3" class="slide-img" alt="Rod Foto 3"> -->
+                <!-- <img src="URL_FOTO_4" class="slide-img" alt="Rod Foto 4"> -->
+            </div>
+
+            <button class="slider-btn next" onclick="moveSlide(1)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+
+        <h2 style="font-size: 1.4rem; font-weight: 800; margin-top: 15px; color: #fff;">
+            Special Rod 1 Year GoCamp Gorontalo
+        </h2>
+
+        <div class="badge-container">
+            <span class="badge"><i class="fa-solid fa-award"></i> Rod 1 Anniversary</span>
+            <span class="badge"><i class="fa-solid fa-id-card"></i> Icon Nametag 1Year 😜</span>
+            <span class="badge badge-gold"><i class="fa-solid fa-crown"></i> Only One Person Has It</span>
+            <span class="badge"><i class="fa-solid fa-gem"></i> Rarity Unknown 🪝</span>
+            <span class="badge badge-blue"><i class="fa-solid fa-shield-halved"></i> Realtime Verification 🔏</span>
+        </div>
     </div>
 
     <!-- KANAN: WAR BID PANEL -->
@@ -128,7 +249,7 @@
             <button class="btn-sm" style="background: var(--gold); color:#000; width:100%; margin-bottom:10px;" onclick="startCameraScanner()">
                 <i class="fa-solid fa-camera"></i> Buka Kamera Scan Barcode
             </button>
-            
+
             <div id="reader"></div>
 
             <label style="font-size:0.75rem; color:#8d99ae;">Atau Upload File Gambar Barcode:</label>
@@ -145,7 +266,7 @@
             </p>
             <input type="text" id="inputDisplayName" placeholder="Display Name Roblox">
             <input type="text" id="inputUsername" placeholder="Username Roblox (@username)">
-            
+
             <div style="display: flex; gap: 8px; align-items: center; font-size: 0.8rem; margin-bottom: 10px; color: #8d99ae; text-align: left;">
                 <input type="checkbox" id="anonCheck">
                 <label for="anonCheck">Sembunyikan Identitas di Publik (Mode Anonim)</label>
@@ -175,7 +296,8 @@
 <script>
     // 1. FIREBASE DATABASE & GOOGLE APPS SCRIPT
     const firebaseConfig = {
-                databaseURL: "https://projeklelang-1e39d-default-rtdb.asia-southeast1.firebasedatabase.app"    };
+        databaseURL: "https://projeklelang-1e39d-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -187,12 +309,18 @@
     let isAdmin = false;
     let html5QrcodeScanner = null;
 
+    // SLIDER FOTO FUNCTION
+    function moveSlide(direction) {
+        const slider = document.getElementById("imageSlider");
+        const slideWidth = slider.clientWidth;
+        slider.scrollBy({ left: direction * slideWidth, behavior: 'smooth' });
+    }
+
     // LISTEN DATA REALTIME (DATABASE)
     db.ref('auction_state').on('value', snapshot => {
         const data = snapshot.val();
-        
-        if(!data || !data.targetEndTime || data.targetEndTime <= 0) {
-            // Default awal jika server kosong: durasi 12 Jam dari detik ini
+
+        if(!data || data.targetEndTime === undefined) {
             setGlobalDuration(12); 
             return;
         }
@@ -201,7 +329,7 @@
         highestAmount = data.highestAmount || 25000;
 
         document.getElementById("highestPrice").innerText = `Rp ${highestAmount.toLocaleString('id-ID')}`;
-        
+
         if(data.highestBidder) {
             const nameShow = data.highestBidder.isAnon 
                 ? "User_*** (Anonim)" 
@@ -210,11 +338,11 @@
         }
     });
 
-    // LISTEN RIWAYAT BID & KONTROL SCAMMER UNTUK OWNER
+    // LISTEN RIWAYAT BID
     db.ref('bids').on('value', snapshot => {
         const list = document.getElementById("historyList");
         list.innerHTML = "";
-        
+
         snapshot.forEach(child => {
             const key = child.key;
             const b = child.val();
@@ -224,10 +352,9 @@
             const namePublic = b.isAnon 
                 ? "User_*** (Anonim)" 
                 : `${b.displayName} (@${b.username})`;
-            
+
             let adminInfoHTML = "";
             if(isAdmin) {
-                // Owner melihat data asli player anonim & tautan profil
                 const roblink = b.robloxLink || `https://www.roblox.com/search/users?keyword=${b.username}`;
                 adminInfoHTML = `
                     <div style="font-size:0.75rem; color:var(--gold); margin-top:3px;">
@@ -252,17 +379,26 @@
 
     // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
+        // Jika timer dinonaktifkan (dikirim -1 dari database)
+        if(targetEndTime === -1) {
+            document.getElementById("timer").innerText = "DILANJUTKAN (TANPA TIMER)";
+            document.getElementById("timer").style.color = "var(--gold)";
+            return;
+        }
+
         if(!targetEndTime || targetEndTime === 0) return;
-        
+
         const now = Date.now();
         const diff = targetEndTime - now;
 
         if (diff <= 0) {
             document.getElementById("timer").innerText = "SELESAI";
+            document.getElementById("timer").style.color = "var(--red)";
             document.getElementById("bidBox").style.display = "none";
             return;
         }
 
+        document.getElementById("timer").style.color = "var(--green)";
         let days = Math.floor(diff / (1000 * 60 * 60 * 24));
         let hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -275,36 +411,61 @@
         }
     }, 1000);
 
-    // FUNGSI UNTUK MENGESET DURASI GLOBAL DARI OWNER (misal 12 JAM)
+    // KONTROL DURATION GLOBAL & MENONAKTIFKAN TIMER
     function setGlobalDuration(hours) {
         const nowMs = Date.now();
         const durationMs = hours * 60 * 60 * 1000;
         const targetMs = nowMs + durationMs;
 
         db.ref('auction_state').update({ targetEndTime: targetMs });
-        alert(`Timer berhasil diset untuk ${hours} jam secara GLOBAL! Seluruh player akan melihat countdown dari waktu ini.`);
+        alert(`Timer diset ${hours} jam secara GLOBAL!`);
     }
 
-    // FITUR KAMERA SCAN BARCODE/QR CODE
+    function stopTimerGlobal() {
+        if(confirm("Apakah Anda yakin ingin MENONAKTIFKAN timer lelang secara global?")) {
+            db.ref('auction_state').update({ targetEndTime: -1 });
+            alert("Timer berhasil dinonaktifkan secara global!");
+        }
+    }
+
+    // FITUR KAMERA SCAN BARCODE/QR CODE (OPTIMAZED & FAST)
     function startCameraScanner() {
         const readerDiv = document.getElementById("reader");
         readerDiv.style.display = "block";
 
+        if(html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+        }
+
         html5QrcodeScanner = new Html5Qrcode("reader");
+        const config = { 
+            fps: 25, 
+            qrbox: { width: 260, height: 260 },
+            videoConstraints: {
+                facingMode: "environment",
+                focusMode: "continuous",
+                width: { min: 640, ideal: 1280 },
+                height: { min: 480, ideal: 720 }
+            }
+        };
+
         html5QrcodeScanner.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: 250 },
+            config,
             (decodedText) => {
                 document.getElementById("robloxLinkInput").value = decodedText;
-                alert("QR Barcode Berhasil Terbaca!");
-                html5QrcodeScanner.stop();
-                readerDiv.style.display = "none";
+                alert("QR/Barcode Berhasil Terbaca Sempurna!");
+                html5QrcodeScanner.stop().then(() => {
+                    readerDiv.style.display = "none";
+                });
             },
             (errorMessage) => { /* scanning... */ }
-        );
+        ).catch(err => {
+            alert("Gagal membuka kamera: " + err);
+        });
     }
 
-    // SCAN QR DARI UPLOAD FILE
+    // SCAN QR DARI UPLOAD FILE (OPTIMIZED & FAST)
     function scanQRFromFile(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -314,9 +475,11 @@
             .then(decodedText => {
                 document.getElementById("robloxLinkInput").value = decodedText;
                 alert("Barcode Profil Berhasil Terbaca dari Gambar!");
+                html5QrCode.clear();
             })
             .catch(err => {
-                alert("Tidak dapat membaca QR/Barcode dari file gambar ini. Anda bisa memasukkan link/username manual.");
+                alert("Gagal membaca QR dari file. Pastikan posisi gambar terlihat jelas.");
+                html5QrCode.clear();
             });
     }
 
@@ -345,7 +508,6 @@
             linkVal = `https://www.roblox.com/search/users?keyword=${uName}`;
         }
 
-        // TANGGAL LOGIN/VERIFIKASI AWAL DALAM FORMAT WITA
         const optionsWITA = { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
         const nowWITA = new Intl.DateTimeFormat('id-ID', optionsWITA).format(new Date());
 
@@ -390,14 +552,12 @@
             timestamp: Date.now()
         };
 
-        // 1. Simpan ke Firebase Database
         db.ref('bids').push(bidData);
         db.ref('auction_state').update({
             highestAmount: amount,
             highestBidder: bidData
         });
 
-        // 2. Rekap Lengkap ke Google Apps Script / Spreadsheet
         fetch(SPREADSHEET_WEB_APP_URL, {
             method: 'POST',
             mode: 'no-cors',
@@ -424,7 +584,7 @@
     function setManualTime() {
         const val = document.getElementById("manualDateTime").value;
         if(!val) { alert("Pilih tanggal dan jam terlebih dahulu!"); return; }
-        
+
         const targetMs = new Date(val).getTime();
         db.ref('auction_state').update({ targetEndTime: targetMs });
         alert("Waktu lelang berhasil diperbarui secara global!");
