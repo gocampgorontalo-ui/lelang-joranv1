@@ -75,6 +75,36 @@
             display: none;
         }
 
+        /* --- STYLES OPSI VERIFIKASI TAB BARCODE --- */
+        .tab-options {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 12px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px 4px;
+            font-size: 0.72rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: #8d99ae;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
         /* --- STYLES SLIDER FOTO SIMETRIS & DESKRIPSI BADGES --- */
         .slider-wrapper {
             position: relative;
@@ -274,24 +304,45 @@
             <i class="fa-solid fa-lock"></i> WAR BID BELUM DIBUKA / DIKUNCI OLEH KYLEE
         </div>
 
-        <!-- STEP 1: SCAN KAMERA / UPLOAD QR BARCODE ROBLOX / LINK RESMI -->
+        <!-- STEP 1: VERIFIKASI DENGAN 3 OPSI (KAMERA / UPLOAD / LINK MANUAL) -->
         <div class="verify-card" id="stepVerifyQR">
             <p style="font-size: 0.8rem; margin-bottom: 10px;">
-                <i class="fa-solid fa-qrcode"></i> <strong>Langkah 1: Scan Barcode / Masukkan Link Profil Resmi Roblox</strong>
+                <i class="fa-solid fa-qrcode"></i> <strong>Langkah 1: Verifikasi Akun Roblox</strong>
             </p>
 
-            <button class="btn-sm" style="background: var(--gold); color:#000; width:100%; margin-bottom:10px;" onclick="startCameraScanner()">
-                <i class="fa-solid fa-camera"></i> Buka Kamera Scan Barcode
-            </button>
+            <!-- TAB NAVIGASI 3 OPSI VERIFIKASI -->
+            <div class="tab-options">
+                <button class="tab-btn active" id="btnTab1" onclick="switchOptionTab(1)">
+                    <i class="fa-solid fa-camera"></i> Scan Kamera
+                </button>
+                <button class="tab-btn" id="btnTab2" onclick="switchOptionTab(2)">
+                    <i class="fa-solid fa-file-arrow-up"></i> Upload Gambar
+                </button>
+                <button class="tab-btn" id="btnTab3" onclick="switchOptionTab(3)">
+                    <i class="fa-solid fa-link"></i> Link Roblox
+                </button>
+            </div>
 
-            <div id="reader"></div>
+            <!-- OPSI 1: SCAN VIA KAMERA -->
+            <div class="tab-content active" id="tabContent1">
+                <button class="btn-sm" style="background: var(--gold); color:#000; width:100%; margin-bottom:10px; font-weight:700;" onclick="startCameraScanner()">
+                    <i class="fa-solid fa-camera"></i> Buka Kamera Scan Barcode
+                </button>
+                <div id="reader"></div>
+            </div>
 
-            <label style="font-size:0.75rem; color:#8d99ae;">Atau Upload File Gambar Barcode:</label>
-            <input type="file" id="qrFileInput" accept="image/*" onchange="scanQRFromFile(event)">
+            <!-- OPSI 2: UPLOAD GAMBAR BARCODE -->
+            <div class="tab-content" id="tabContent2">
+                <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Pilih / Upload File Gambar QR Code:</label>
+                <input type="file" id="qrFileInput" accept="image/*" onchange="scanQRFromFile(event)">
+            </div>
 
-            <!-- INPUT LINK ROBLOX (MENCEGAH TEKS BIASA/MANUAL) -->
-            <input type="text" id="robloxLinkInput" placeholder="Tempel Link Profil Roblox (contoh: https://www.roblox.com/users/123456/profile)">
-            <button class="btn btn-blue" onclick="goToStepIdentity()">Lanjut Ke Pengisian Identitas</button>
+            <!-- OPSI 3: INPUT LINK ROBLOX MANUAL -->
+            <div class="tab-content" id="tabContent3">
+                <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Tempelkan Link Profil Roblox Resmi Anda:</label>
+                <input type="text" id="robloxLinkInput" placeholder="Contoh: https://www.roblox.com/users/123456/profile">
+                <button class="btn btn-blue" onclick="processRobloxVerification()">Lanjut Ke Langkah 2</button>
+            </div>
         </div>
 
         <!-- STEP 2: ISI IDENTITAS (USER TERBACA OTOMATIS DARI LINK) -->
@@ -362,6 +413,24 @@
         const slider = document.getElementById("imageSlider");
         const slideWidth = slider.clientWidth;
         slider.scrollBy({ left: direction * slideWidth, behavior: 'smooth' });
+    }
+
+    // TOGGLE NAVIGASI TAB VERIFIKASI LANGKAH 1
+    function switchOptionTab(tabIndex) {
+        for(let i = 1; i <= 3; i++) {
+            document.getElementById(`btnTab${i}`).classList.remove("active");
+            document.getElementById(`tabContent${i}`).classList.remove("active");
+        }
+        document.getElementById(`btnTab${tabIndex}`).classList.add("active");
+        document.getElementById(`tabContent${tabIndex}`).classList.add("active");
+
+        // Tutup kamera jika pindah dari tab 1
+        if(tabIndex !== 1 && html5QrcodeScanner) {
+            try {
+                html5QrcodeScanner.stop();
+            } catch(e) {}
+            document.getElementById("reader").style.display = "none";
+        }
     }
 
     // LISTEN DATA REALTIME (DATABASE)
@@ -552,110 +621,8 @@
         alert(status ? "Mode Anonim Diterapkan (Nama disembunyikan)!" : "Mode Anonim DIBUKA! (Seluruh identitas asli penawar terlihat)");
     }
 
-    // FITUR KAMERA SCAN BARCODE/QR CODE
-    function startCameraScanner() {
-        const readerDiv = document.getElementById("reader");
-        readerDiv.style.display = "block";
-
-        if(html5QrcodeScanner) {
-            html5QrcodeScanner.clear();
-        }
-
-        html5QrcodeScanner = new Html5Qrcode("reader");
-        const config = { 
-            fps: 25, 
-            qrbox: { width: 260, height: 260 },
-            videoConstraints: {
-                facingMode: "environment",
-                focusMode: "continuous",
-                width: { min: 640, ideal: 1280 },
-                height: { min: 480, ideal: 720 }
-            }
-        };
-
-        html5QrcodeScanner.start(
-            { facingMode: "environment" },
-            config,
-            (decodedText) => {
-                document.getElementById("robloxLinkInput").value = decodedText;
-                alert("QR/Barcode Berhasil Terbaca Sempurna!");
-                html5QrcodeScanner.stop().then(() => {
-                    readerDiv.style.display = "none";
-                });
-            },
-            (errorMessage) => { /* scanning... */ }
-        ).catch(err => {
-            alert("Gagal membuka kamera: " + err);
-        });
-    }
-
-    // SCAN QR DARI UPLOAD FILE
-    async function scanQRFromFile(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const html5QrCode = new Html5Qrcode("reader");
-
-        try {
-            const decodedText = await html5QrCode.scanFile(file, true);
-            document.getElementById("robloxLinkInput").value = decodedText;
-            alert("Barcode Profil Berhasil Terbaca!");
-            html5QrCode.clear();
-            return;
-        } catch (err) {
-            console.log("Scan file asli gagal. Memulai auto-enhance & auto-rotate...");
-        }
-
-        const image = new Image();
-        image.src = URL.createObjectURL(file);
-        await new Promise(resolve => image.onload = resolve);
-
-        const anglesToTry = [0, 90, 180, 270, -15, 15, -30, 30];
-        let isSuccess = false;
-
-        for (let angle of anglesToTry) {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
-
-            const rad = (angle * Math.PI) / 180;
-            const sin = Math.abs(Math.sin(rad));
-            const cos = Math.abs(Math.cos(rad));
-
-            const scale = 1.5;
-            canvas.width = (image.width * cos + image.height * sin) * scale;
-            canvas.height = (image.width * sin + image.height * cos) * scale;
-
-            ctx.scale(scale, scale);
-            ctx.translate((canvas.width / scale) / 2, (canvas.height / scale) / 2);
-            ctx.rotate(rad);
-            
-            ctx.filter = "contrast(150%) brightness(105%)";
-            ctx.drawImage(image, -image.width / 2, -image.height / 2);
-
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            const processedFile = new File([blob], "processed.png", { type: "image/png" });
-
-            try {
-                const decodedText = await html5QrCode.scanFile(processedFile, false);
-                document.getElementById("robloxLinkInput").value = decodedText;
-                alert("Barcode Profil Berhasil Terbaca!");
-                isSuccess = true;
-                break;
-            } catch (error) {
-                // Try next rotation
-            }
-        }
-
-        html5QrCode.clear();
-
-        if (!isSuccess) {
-            alert("Gagal membaca QR dari file. Pastikan memasukkan link profil resmi Roblox!");
-        }
-    }
-
     // EXTRACTION FUNCTION UNTUK MEMBACA KETAT LINK ROBLOX
     function extractRobloxUser(url) {
-        // Mendukung format: roblox.com/users/ID/profile ATAU roblox.com/users/ID
         const match = url.match(/roblox\.com\/users\/(\d+)/i);
         if (match && match[1]) {
             return {
@@ -666,35 +633,129 @@
         return null;
     }
 
-    // VERIFIKASI LANGKAH KEDUA (CEGAH MANIPULASI USERNAME)
-    function goToStepIdentity() {
+    // OPSI 1: KAMERA SCANNER BARCODE
+    function startCameraScanner() {
+        const readerDiv = document.getElementById("reader");
+        readerDiv.style.display = "block";
+
+        if(html5QrcodeScanner) {
+            try { html5QrcodeScanner.clear(); } catch(e){}
+        }
+
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        const config = { 
+            fps: 25, 
+            qrbox: { width: 260, height: 260 },
+            videoConstraints: {
+                facingMode: "environment",
+                focusMode: "continuous"
+            }
+        };
+
+        html5QrcodeScanner.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+                html5QrcodeScanner.stop().then(() => {
+                    readerDiv.style.display = "none";
+                    processRobloxVerification(decodedText);
+                });
+            },
+            (errorMessage) => { /* scanning... */ }
+        ).catch(err => {
+            alert("Gagal membuka kamera: " + err);
+        });
+    }
+
+    // OPSI 2: SCAN BARCODE DARI UPLOAD FILE GAMBAR
+    async function scanQRFromFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const html5QrCode = new Html5Qrcode("reader");
+
+        let decodedText = null;
+
+        try {
+            decodedText = await html5QrCode.scanFile(file, true);
+        } catch (err) {
+            console.log("Scan file asli gagal. Memulai auto-enhance & auto-rotate...");
+        }
+
+        if(!decodedText) {
+            const image = new Image();
+            image.src = URL.createObjectURL(file);
+            await new Promise(resolve => image.onload = resolve);
+
+            const anglesToTry = [0, 90, 180, 270, -15, 15, -30, 30];
+
+            for (let angle of anglesToTry) {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+
+                const rad = (angle * Math.PI) / 180;
+                const sin = Math.abs(Math.sin(rad));
+                const cos = Math.abs(Math.cos(rad));
+
+                const scale = 1.5;
+                canvas.width = (image.width * cos + image.height * sin) * scale;
+                canvas.height = (image.width * sin + image.height * cos) * scale;
+
+                ctx.scale(scale, scale);
+                ctx.translate((canvas.width / scale) / 2, (canvas.height / scale) / 2);
+                ctx.rotate(rad);
+                
+                ctx.filter = "contrast(150%) brightness(105%)";
+                ctx.drawImage(image, -image.width / 2, -image.height / 2);
+
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const processedFile = new File([blob], "processed.png", { type: "image/png" });
+
+                try {
+                    decodedText = await html5QrCode.scanFile(processedFile, false);
+                    if(decodedText) break;
+                } catch (error) {}
+            }
+        }
+
+        try { html5QrCode.clear(); } catch(err){}
+
+        if (decodedText) {
+            alert("Barcode Profil Berhasil Terbaca!");
+            processRobloxVerification(decodedText);
+        } else {
+            alert("❌ Gagal membaca Barcode/QR Code dari gambar ini!\n\nPastikan foto barcode terlihat jelas atau gunakan Opsi 3 (Input Link Roblox Manual).");
+        }
+    }
+
+    // PROSES DARI STEP 1 KE STEP 2 (DAPAT DIPANGGIL OLEH KAMERA, UPLOAD GAMBAR, MAUPUN LINK MANUAL)
+    function processRobloxVerification(scannedUrl = null) {
         if (isWarBidLocked) {
             alert("War Bid saat ini sedang dikunci oleh Kylee.");
             return;
         }
 
-        const linkVal = document.getElementById("robloxLinkInput").value.trim();
+        const linkVal = scannedUrl ? scannedUrl : document.getElementById("robloxLinkInput").value.trim();
 
         if(!linkVal) {
-            alert("Harap Scan Barcode atau Tempel Link Profil Roblox Resmi!");
+            alert("Harap masukkan link profil resmi Roblox!");
             return;
         }
 
-        // VALIDASI KETAT: WAJIB MENGANDUNG LINK ROBLOX DENGAN ID USER VALID
+        // VALIDASI KETAT WAJIB BEREKSTRAKSI ID USER ROBLOX
         const robloxData = extractRobloxUser(linkVal);
 
         if(!robloxData) {
-            alert("❌ LINK INVALID / TEKS MANUALL DITOLAK!\n\nHarap gunakan Link Profil Resmi Roblox yang valid agar player dapat ditrack oleh Owner.\n\nContoh: https://www.roblox.com/users/12345678/profile");
+            alert("❌ LINK / QR BARCODE INVALID!\n\nHarap pastikan barcode atau link mengarah ke profil resmi Roblox.\nContoh: https://www.roblox.com/users/12345678/profile");
             return;
         }
 
-        // SIMPAN LINK YANG SUDAH BERSIH SESUAI FORMAT OFFICIAL
+        // ISI DATA OTOMATIS KE INPUT STEP 2
         document.getElementById("robloxLinkInput").value = robloxData.cleanUrl;
-        
-        // AUTO-FILL KETAT KODE ID/USERNAME & READONLY DI STEP 2
         document.getElementById("inputUsername").value = "User_" + robloxData.id;
         document.getElementById("inputDisplayName").value = "Player_" + robloxData.id;
 
+        // PINDAH TAMPILAN KE STEP 2
         document.getElementById("stepVerifyQR").style.display = "none";
         document.getElementById("stepIdentity").style.display = "block";
     }
