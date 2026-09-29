@@ -62,7 +62,6 @@
 
         #reader { width: 100%; max-width: 350px; margin: 0 auto 10px auto; border-radius: 8px; overflow: hidden; display: none; }
 
-        /* BANNER KUNCI WAR BID */
         .lock-banner {
             background: rgba(255, 0, 85, 0.15);
             border: 1px solid var(--red);
@@ -75,7 +74,6 @@
             display: none;
         }
 
-        /* --- STYLES OPSI VERIFIKASI TAB BARCODE --- */
         .tab-options {
             display: flex;
             gap: 5px;
@@ -105,7 +103,6 @@
             display: block;
         }
 
-        /* --- STYLES SLIDER FOTO SIMETRIS & DESKRIPSI BADGES --- */
         .slider-wrapper {
             position: relative;
             width: 100%;
@@ -213,7 +210,6 @@
     <div class="admin-panel" id="adminPanel">
         <h4 style="color: var(--red); margin-bottom: 10px;"><i class="fa-solid fa-user-shield"></i> Panel Kontrol Realtime Owner</h4>
 
-        <!-- KONTROL LOCK / UNLOCK WAR BID & HIDE/UNHIDE ANONIM -->
         <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
             <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Akses Bidding & Mode Tampilan:</label>
             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
@@ -235,7 +231,6 @@
             </div>
         </div>
 
-        <!-- PENGATURAN DURASI LELANG GLOBAL -->
         <div style="margin-bottom: 15px;">
             <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Set Timer Durasi Lelang Global (Mulai dari Sekarang):</label>
             <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;">
@@ -260,13 +255,12 @@
         </div>
     </div>
 
-    <!-- KIRI: ITEM INFO DENGAN SLIDER SIMETRIS -->
+    <!-- KIRI: ITEM INFO -->
     <div class="card" style="text-align: center;">
         <div class="slider-wrapper">
             <button class="slider-btn prev" onclick="moveSlide(-1)"><i class="fa-solid fa-chevron-left"></i></button>
             
             <div class="image-slider" id="imageSlider">
-                <!-- Foto 1 (Utama) -->
                 <img src="https://imgur.com/LdvwN5A.jpeg" class="slide-img" alt="Rod Foto 1">
             </div>
 
@@ -299,18 +293,16 @@
             <small id="highestBidder" style="color: var(--gold);">Oleh: Belum Ada</small>
         </div>
 
-        <!-- NOTIFIKASI WAR BID DIKUNCI -->
         <div class="lock-banner" id="lockBanner">
             <i class="fa-solid fa-lock"></i> WAR BID BELUM DIBUKA / DIKUNCI OLEH KYLEE
         </div>
 
-        <!-- STEP 1: VERIFIKASI DENGAN 3 OPSI (KAMERA / UPLOAD / LINK MANUAL) -->
+        <!-- STEP 1: VERIFIKASI DENGAN 3 OPSI -->
         <div class="verify-card" id="stepVerifyQR">
             <p style="font-size: 0.8rem; margin-bottom: 10px;">
                 <i class="fa-solid fa-qrcode"></i> <strong>Langkah 1: Verifikasi Akun Roblox</strong>
             </p>
 
-            <!-- TAB NAVIGASI 3 OPSI VERIFIKASI -->
             <div class="tab-options">
                 <button class="tab-btn active" id="btnTab1" onclick="switchOptionTab(1)">
                     <i class="fa-solid fa-camera"></i> Scan Kamera
@@ -331,21 +323,21 @@
                 <div id="reader"></div>
             </div>
 
-            <!-- OPSI 2: UPLOAD GAMBAR BARCODE -->
+            <!-- OPSI 2: UPLOAD GAMBAR BARCODE INSTAN -->
             <div class="tab-content" id="tabContent2">
                 <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Pilih / Upload File Gambar QR Code:</label>
                 <input type="file" id="qrFileInput" accept="image/*" onchange="scanQRFromFile(event)">
             </div>
 
-            <!-- OPSI 3: INPUT LINK ROBLOX MANUAL -->
+            <!-- OPSI 3: INPUT LINK ROBLOX MANUAL (MENDUKUNG SHARE LINK & PROFILE LINK) -->
             <div class="tab-content" id="tabContent3">
-                <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Tempelkan Link Profil Roblox Resmi Anda:</label>
-                <input type="text" id="robloxLinkInput" placeholder="Contoh: https://www.roblox.com/users/123456/profile">
+                <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Tempelkan Link Profil / Share Link Roblox Anda:</label>
+                <input type="text" id="robloxLinkInput" placeholder="https://www.roblox.com/share?code=... atau /users/123/profile">
                 <button class="btn btn-blue" onclick="processRobloxVerification()">Lanjut Ke Langkah 2</button>
             </div>
         </div>
 
-        <!-- STEP 2: ISI IDENTITAS (USER TERBACA OTOMATIS DARI LINK) -->
+        <!-- STEP 2: ISI IDENTITAS -->
         <div class="verify-card" id="stepIdentity" style="display: none;">
             <p style="font-size: 0.8rem; margin-bottom: 10px;">
                 <i class="fa-solid fa-user-check"></i> <strong>Langkah 2: Lengkapi Profile Player</strong>
@@ -355,7 +347,6 @@
             <input type="text" id="inputDisplayName" placeholder="Display Name Roblox">
 
             <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Roblox Username / ID (Terkunci & Valid):</label>
-            <!-- USERNAME DI-LOCK READONLY AGAR TIDAK BISA DIMANIPULASI MANUAL -->
             <input type="text" id="inputUsername" placeholder="Username / ID Roblox" readonly style="background: #151824; color: var(--gold); cursor: not-allowed;">
 
             <div style="display: flex; gap: 8px; align-items: center; font-size: 0.8rem; margin-bottom: 10px; color: #8d99ae; text-align: left;">
@@ -386,7 +377,6 @@
 </div>
 
 <script>
-    // 1. FIREBASE DATABASE & GOOGLE APPS SCRIPT
     const firebaseConfig = {
         databaseURL: "https://projeklelang-1e39d-default-rtdb.asia-southeast1.firebasedatabase.app"
     };
@@ -405,17 +395,14 @@
     let cachedBidsSnapshot = null;
     let cachedStateData = null;
 
-    // VARIABEL COOLDOWN SPAM BID
     let lastBidTime = 0;
 
-    // SLIDER FOTO FUNCTION
     function moveSlide(direction) {
         const slider = document.getElementById("imageSlider");
         const slideWidth = slider.clientWidth;
         slider.scrollBy({ left: direction * slideWidth, behavior: 'smooth' });
     }
 
-    // TOGGLE NAVIGASI TAB VERIFIKASI LANGKAH 1
     function switchOptionTab(tabIndex) {
         for(let i = 1; i <= 3; i++) {
             document.getElementById(`btnTab${i}`).classList.remove("active");
@@ -424,16 +411,12 @@
         document.getElementById(`btnTab${tabIndex}`).classList.add("active");
         document.getElementById(`tabContent${tabIndex}`).classList.add("active");
 
-        // Tutup kamera jika pindah dari tab 1
         if(tabIndex !== 1 && html5QrcodeScanner) {
-            try {
-                html5QrcodeScanner.stop();
-            } catch(e) {}
+            try { html5QrcodeScanner.stop(); } catch(e) {}
             document.getElementById("reader").style.display = "none";
         }
     }
 
-    // LISTEN DATA REALTIME (DATABASE)
     db.ref('auction_state').on('value', snapshot => {
         const data = snapshot.val();
         if(!data) return;
@@ -453,16 +436,15 @@
 
         updateHighestBidderDisplay();
 
-        // TAMPILAN LOCK STATUS SINKRON REALTIME
         const lockBanner = document.getElementById("lockBanner");
         const stepVerifyQR = document.getElementById("stepVerifyQR");
-        const stepIdentity = document.getElementById("stepIdentity");
+        document.getElementById("stepIdentity");
         const bidBox = document.getElementById("bidBox");
 
         if (isWarBidLocked) {
             lockBanner.style.display = "block";
             stepVerifyQR.style.display = "none";
-            stepIdentity.style.display = "none";
+            document.getElementById("stepIdentity").style.display = "none";
             bidBox.style.display = "none";
         } else {
             lockBanner.style.display = "none";
@@ -486,7 +468,7 @@
         let nameShow = "";
 
         if (b.isAnon && hideAnonGlobally) {
-            nameShow = "User_*** (Anonim )";
+            nameShow = "User_*** (Anonim)";
         } else {
             nameShow = `${b.displayName} (@${b.username}) ${b.isAnon ? '<span style="color:var(--gold); font-size:0.75rem;">(Anonim Mode)</span>' : ''}`;
         }
@@ -494,7 +476,6 @@
         document.getElementById("highestBidder").innerHTML = `Oleh: ${nameShow}`;
     }
 
-    // LISTEN RIWAYAT BID & FUNGSI RENDER
     db.ref('bids').on('value', snapshot => {
         cachedBidsSnapshot = snapshot;
         renderBids();
@@ -512,12 +493,10 @@
             const li = document.createElement("li");
             li.className = "history-item";
 
-            // Tentukan Link Profil Roblox
             const profileUrl = b.robloxLink && b.robloxLink.includes("roblox.com")
                 ? b.robloxLink 
                 : `https://www.roblox.com/search/users?keyword=${b.username}`;
 
-            // 1. TAMPILAN PUBLIK / PENONTON LIVE STREAM
             let namePublic = "";
             if (b.isAnon && hideAnonGlobally) {
                 namePublic = `<span style="color:#8d99ae; font-style:italic;">User_*** (Anonim)</span>`;
@@ -525,7 +504,6 @@
                 namePublic = `<strong style="color: #fff;">${b.displayName} (@${b.username})</strong> ${b.isAnon ? '<span style="color:var(--gold); font-size:0.7rem;">[Anonim]</span>' : ''}`;
             }
 
-            // 2. TAMPILAN KHUSUS OWNER / ADMIN PANEL
             let adminInfoHTML = "";
             if (isAdmin) {
                 adminInfoHTML = `
@@ -559,7 +537,6 @@
         updateHighestBidderDisplay();
     }
 
-    // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
         if(targetEndTime === -1) {
             document.getElementById("timer").innerText = "*Timer Belum di Set*";
@@ -592,7 +569,6 @@
         }
     }, 1000);
 
-    // KONTROL DURATION GLOBAL & MENONAKTIFKAN TIMER
     function setGlobalDuration(hours) {
         const nowMs = Date.now();
         const durationMs = hours * 60 * 60 * 1000;
@@ -609,31 +585,53 @@
         }
     }
 
-    // FUNGSI LOCK / UNLOCK WAR BID OLEH ADMIN
     function toggleLockBid(status) {
         db.ref('auction_state').update({ isLocked: status });
         alert(status ? "War Bid Berhasil DIKUNCI!" : "War Bid Berhasil DIBUKA!");
     }
 
-    // FUNGSI HIDE / UNHIDE ANONIM UNTUK TAMPILAN LIVE
     function toggleHideAnon(status) {
         db.ref('auction_state').update({ hideAnonGlobally: status });
-        alert(status ? "Mode Anonim Diterapkan (Nama disembunyikan)!" : "Mode Anonim DIBUKA! (Seluruh identitas asli penawar terlihat)");
+        alert(status ? "Mode Anonim Diterapkan!" : "Mode Anonim DIBUKA!");
     }
 
-    // EXTRACTION FUNCTION UNTUK MEMBACA KETAT LINK ROBLOX
+    // EXTRACTION FUNCTION TERBARU: MENDUKUNG SHARE LINK & PROFILE LINK REGULAR
     function extractRobloxUser(url) {
-        const match = url.match(/roblox\.com\/users\/(\d+)/i);
-        if (match && match[1]) {
+        if (!url) return null;
+
+        // 1. Format biasa: roblox.com/users/123456/profile
+        const matchUsers = url.match(/roblox\.com\/users\/(\d+)/i);
+        if (matchUsers && matchUsers[1]) {
             return {
-                id: match[1],
-                cleanUrl: `https://www.roblox.com/users/${match[1]}/profile`
+                id: matchUsers[1],
+                cleanUrl: `https://www.roblox.com/users/${matchUsers[1]}/profile`
             };
         }
+
+        // 2. Format Share Link: roblox.com/share?code=3a75ee4e38813d449442b259805557db...
+        const matchShare = url.match(/roblox\.com\/share\?code=([a-f0-9]+)/i);
+        if (matchShare && matchShare[1]) {
+            // Ekstrak kode unik share roblox
+            const shareCode = matchShare[1].substring(0, 10);
+            return {
+                id: "Share_" + shareCode,
+                cleanUrl: url
+            };
+        }
+
+        // 3. Jika memasukkan URL Roblox yang umum
+        if (url.includes("roblox.com/")) {
+            const randomId = Math.floor(1000000 + Math.random() * 9000000);
+            return {
+                id: randomId.toString(),
+                cleanUrl: url
+            };
+        }
+
         return null;
     }
 
-    // OPSI 1: KAMERA SCANNER BARCODE
+    // SCANNER KAMERA INSTAN
     function startCameraScanner() {
         const readerDiv = document.getElementById("reader");
         readerDiv.style.display = "block";
@@ -644,12 +642,8 @@
 
         html5QrcodeScanner = new Html5Qrcode("reader");
         const config = { 
-            fps: 25, 
-            qrbox: { width: 260, height: 260 },
-            videoConstraints: {
-                facingMode: "environment",
-                focusMode: "continuous"
-            }
+            fps: 30, 
+            qrbox: { width: 280, height: 280 }
         };
 
         html5QrcodeScanner.start(
@@ -661,74 +655,54 @@
                     processRobloxVerification(decodedText);
                 });
             },
-            (errorMessage) => { /* scanning... */ }
+            (errorMessage) => {}
         ).catch(err => {
             alert("Gagal membuka kamera: " + err);
         });
     }
 
-    // OPSI 2: SCAN BARCODE DARI UPLOAD FILE GAMBAR
+    // SCAN UPLOAD GAMBAR INSTAN
     async function scanQRFromFile(e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const html5QrCode = new Html5Qrcode("reader");
-
         let decodedText = null;
 
         try {
             decodedText = await html5QrCode.scanFile(file, true);
-        } catch (err) {
-            console.log("Scan file asli gagal. Memulai auto-enhance & auto-rotate...");
-        }
+        } catch (err) {}
 
         if(!decodedText) {
             const image = new Image();
             image.src = URL.createObjectURL(file);
             await new Promise(resolve => image.onload = resolve);
 
-            const anglesToTry = [0, 90, 180, 270, -15, 15, -30, 30];
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = image.width;
+            canvas.height = image.height;
 
-            for (let angle of anglesToTry) {
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
+            ctx.filter = "contrast(180%) brightness(110%)";
+            ctx.drawImage(image, 0, 0);
 
-                const rad = (angle * Math.PI) / 180;
-                const sin = Math.abs(Math.sin(rad));
-                const cos = Math.abs(Math.cos(rad));
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const processedFile = new File([blob], "processed.png", { type: "image/png" });
 
-                const scale = 1.5;
-                canvas.width = (image.width * cos + image.height * sin) * scale;
-                canvas.height = (image.width * sin + image.height * cos) * scale;
-
-                ctx.scale(scale, scale);
-                ctx.translate((canvas.width / scale) / 2, (canvas.height / scale) / 2);
-                ctx.rotate(rad);
-                
-                ctx.filter = "contrast(150%) brightness(105%)";
-                ctx.drawImage(image, -image.width / 2, -image.height / 2);
-
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-                const processedFile = new File([blob], "processed.png", { type: "image/png" });
-
-                try {
-                    decodedText = await html5QrCode.scanFile(processedFile, false);
-                    if(decodedText) break;
-                } catch (error) {}
-            }
+            try {
+                decodedText = await html5QrCode.scanFile(processedFile, false);
+            } catch (error) {}
         }
 
         try { html5QrCode.clear(); } catch(err){}
 
         if (decodedText) {
-            alert("Barcode Profil Berhasil Terbaca!");
             processRobloxVerification(decodedText);
         } else {
-            alert("❌ Gagal membaca Barcode/QR Code dari gambar ini!\n\nPastikan foto barcode terlihat jelas atau gunakan Opsi 3 (Input Link Roblox Manual).");
+            alert("❌ QR Code tidak terbaca dari gambar!\nSilakan gunakan Opsi 3 (Input Link Roblox) langsung.");
         }
     }
 
-    // PROSES DARI STEP 1 KE STEP 2 (DAPAT DIPANGGIL OLEH KAMERA, UPLOAD GAMBAR, MAUPUN LINK MANUAL)
     function processRobloxVerification(scannedUrl = null) {
         if (isWarBidLocked) {
             alert("War Bid saat ini sedang dikunci oleh Kylee.");
@@ -738,24 +712,22 @@
         const linkVal = scannedUrl ? scannedUrl : document.getElementById("robloxLinkInput").value.trim();
 
         if(!linkVal) {
-            alert("Harap masukkan link profil resmi Roblox!");
+            alert("Harap masukkan link profil resmi / link share Roblox!");
             return;
         }
 
-        // VALIDASI KETAT WAJIB BEREKSTRAKSI ID USER ROBLOX
         const robloxData = extractRobloxUser(linkVal);
 
         if(!robloxData) {
-            alert("❌ LINK / QR BARCODE INVALID!\n\nHarap pastikan barcode atau link mengarah ke profil resmi Roblox.\nContoh: https://www.roblox.com/users/12345678/profile");
+            alert("❌ LINK INVALID!\nFormat link Roblox tidak dikenali.");
             return;
         }
 
-        // ISI DATA OTOMATIS KE INPUT STEP 2
         document.getElementById("robloxLinkInput").value = robloxData.cleanUrl;
         document.getElementById("inputUsername").value = "User_" + robloxData.id;
         document.getElementById("inputDisplayName").value = "Player_" + robloxData.id;
 
-        // PINDAH TAMPILAN KE STEP 2
+        // INSTAN PINDAH KE STEP 2
         document.getElementById("stepVerifyQR").style.display = "none";
         document.getElementById("stepIdentity").style.display = "block";
     }
@@ -798,7 +770,6 @@
         document.getElementById("bidAmountInput").value = res;
     }
 
-    // KIRIM BID PENAWARAN & SIMPAN DATA KE SPREADSHEET
     function submitBid() {
         if (isWarBidLocked) {
             alert("War Bid sedang dikunci oleh Kylee. Tidak dapat melakukan penawaran.");
@@ -807,13 +778,12 @@
 
         if(!currentUser) return;
 
-        // 1. CEK ANTI-SPAM BID (COOLDOWN 20 DETIK)
         const now = Date.now();
-        const COOLDOWN_MS = 20000; // 20 Detik
+        const COOLDOWN_MS = 20000;
 
         if (now - lastBidTime < COOLDOWN_MS) {
             const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastBidTime)) / 1000);
-            alert(`⚠️ JEDA ANTI-SPAM! Mohon tunggu ${remainingSeconds} detik lagi sebelum mengirim penawaran berikutnya.`);
+            alert(`⚠️ JEDA ANTI-SPAM! Mohon tunggu ${remainingSeconds} detik lagi sebelum mengirim penawaran.`);
             return;
         }
 
@@ -825,23 +795,18 @@
             return;
         }
 
-        // 2. CEK PENAWARAN TERLALU TINGGI / LOMPATAN BERISIKO (SCAM WARNING)
         const isRiskyJump = amount >= (highestAmount * 2) || (amount - highestAmount) >= 500000;
 
         if (isRiskyJump) {
             const confirmBid = confirm(
                 "⚠️ PERINGATAN RESIKO KICK / SCAM BID! ⚠️\n\n" +
-                `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini (Rp ${highestAmount.toLocaleString('id-ID')}).\n\n` +
-                "Jika penawaran ini terindikasi Main-Main / Fake Bid / Scam, Owner akan MERESET/MENGHAPUS tawaran Anda dan meng-KICK Anda dari sesi lelang!\n\n" +
+                `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini.\n\n` +
                 "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran ini?"
             );
 
-            if (!confirmBid) {
-                return;
-            }
+            if (!confirmBid) return;
         }
 
-        // CATAT WAKTU BID BERHASIL TERKIRIM UNTUK COOLDOWN
         lastBidTime = Date.now();
 
         const bidData = {
@@ -870,7 +835,6 @@
         alert("Penawaran Berhasil Dikirim!");
     }
 
-    // KONTROL PANEL ADMIN / OWNER
     function loginAdmin() {
         const pin = prompt("Masukkan PIN Control:");
         if(pin === "324121") {
@@ -879,7 +843,7 @@
             alert("Login Owner Berhasil!");
             renderBids();
         } else {
-            alert("PIN Salah, Jang bapaksa plis!!!");
+            alert("PIN Salah!!!");
         }
     }
 
@@ -900,7 +864,7 @@
     }
 
     function kickPlayer(bidKey) {
-        if(confirm("Kick/tendang player scammer ini secara realtime dari lelang?")) {
+        if(confirm("Kick/tendang player scammer ini dari lelang?")) {
             db.ref(`bids/${bidKey}`).remove();
         }
     }
