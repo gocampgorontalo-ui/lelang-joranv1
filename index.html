@@ -75,12 +75,22 @@
     <div class="admin-panel" id="adminPanel">
         <h4 style="color: var(--red); margin-bottom: 10px;"><i class="fa-solid fa-user-shield"></i> Panel Kontrol Realtime Owner</h4>
         
+        <!-- PENGATURAN DURASI LELANG GLOBAL -->
         <div style="margin-bottom: 15px;">
-            <label style="font-size: 0.8rem; color: #8d99ae;">Atur Waktu Selesai Lelang Manual (Format WITA):</label>
+            <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Set Timer Durasi Lelang Global (Mulai dari Sekarang):</label>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;">
+                <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(0.5)">30 Menit</button>
+                <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(1)">1 Jam</button>
+                <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(3)">3 Jam</button>
+                <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(6)">6 Jam</button>
+                <button class="btn-sm" style="background: var(--gold); color:#000; font-weight:bold;" onclick="setGlobalDuration(12)">⚡ 12 Jam</button>
+                <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(24)">24 Jam (1 Hari)</button>
+            </div>
+
+            <label style="font-size: 0.8rem; color: #8d99ae;">Atau Set Waktu Selesai Spesifik (Format Tanggal & Jam):</label>
             <div style="display: flex; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
                 <input type="datetime-local" id="manualDateTime" style="margin-bottom:0; flex:1;">
-                <button class="btn-sm" style="background: var(--blue);" onclick="setManualTime()">Set Waktu</button>
-                <button class="btn-sm" style="background: var(--gold); color: #000;" onclick="setTarget1st2359()">Set Ke Tgl 1 Jam 23:59 WITA</button>
+                <button class="btn-sm" style="background: var(--green); color:#000;" onclick="setManualTime()">Set Waktu Manual</button>
             </div>
         </div>
 
@@ -99,7 +109,7 @@
     <!-- KANAN: WAR BID PANEL -->
     <div class="card">
         <div class="timer-box">
-            <small style="color: #8d99ae;">SISA WAKTU (WAR TIME WITA)</small>
+            <small style="color: #8d99ae;">SISA WAKTU (WAR TIME GLOBAL)</small>
             <div class="timer-val" id="timer">Memuat Waktu...</div>
         </div>
 
@@ -183,12 +193,13 @@
         const data = snapshot.val();
         
         if(!data || !data.targetEndTime || data.targetEndTime <= 0) {
-            setTarget1st2359(); // Auto Inisialisasi jika data kosong
+            // Default awal jika server kosong: durasi 12 Jam dari detik ini
+            setGlobalDuration(12); 
             return;
         }
 
         targetEndTime = data.targetEndTime;
-        highestAmount = data.highestAmount || 500000;
+        highestAmount = data.highestAmount || 25000;
 
         document.getElementById("highestPrice").innerText = `Rp ${highestAmount.toLocaleString('id-ID')}`;
         
@@ -217,7 +228,7 @@
             
             let adminInfoHTML = "";
             if(isAdmin) {
-                // Owner bisa melihat data asli dari player anonim & tautan profil
+                // Owner melihat data asli player anonim & tautan profil
                 const roblink = b.robloxLink || `https://www.roblox.com/search/users?keyword=${b.username}`;
                 adminInfoHTML = `
                     <div style="font-size:0.75rem; color:var(--gold); margin-top:3px;">
@@ -240,7 +251,7 @@
         });
     });
 
-    // SINKRONISASI WAKTU REALTIME
+    // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
         if(!targetEndTime || targetEndTime === 0) return;
         
@@ -258,8 +269,22 @@
         let minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         let seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-        document.getElementById("timer").innerText = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+        if(days > 0) {
+            document.getElementById("timer").innerText = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+        } else {
+            document.getElementById("timer").innerText = `${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+        }
     }, 1000);
+
+    // FUNGSI UNTUK MENGESET DURASI GLOBAL DARI OWNER (misal 12 JAM)
+    function setGlobalDuration(hours) {
+        const nowMs = Date.now();
+        const durationMs = hours * 60 * 60 * 1000;
+        const targetMs = nowMs + durationMs;
+
+        db.ref('auction_state').update({ targetEndTime: targetMs });
+        alert(`Timer berhasil diset untuk ${hours} jam secara GLOBAL! Seluruh player akan melihat countdown dari waktu ini.`);
+    }
 
     // FITUR KAMERA SCAN BARCODE/QR CODE
     function startCameraScanner() {
@@ -406,23 +431,10 @@
         alert("Waktu lelang berhasil diperbarui secara global!");
     }
 
-    function setTarget1st2359() {
-        const now = new Date();
-        let targetMonth = now.getMonth() + 1;
-        let targetYear = now.getFullYear();
-        
-        if(targetMonth > 11) { targetMonth = 0; targetYear += 1; }
-
-        // Set ke tanggal 1 jam 23:59:59 (WITA)
-        const targetDate = new Date(targetYear, targetMonth, 1, 23, 59, 59).getTime();
-        db.ref('auction_state').update({ targetEndTime: targetDate });
-        alert("Waktu lelang berhasil disetel ke Tanggal 1 Jam 23:59 WITA!");
-    }
-
     function clearBids() {
         if(confirm("Yakin ingin menghapus seluruh riwayat bid?")) {
             db.ref('bids').remove();
-            db.ref('auction_state').update({ highestAmount: 500000, highestBidder: null });
+            db.ref('auction_state').update({ highestAmount: 25000, highestBidder: null });
         }
     }
 
