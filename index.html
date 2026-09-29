@@ -62,6 +62,19 @@
 
         #reader { width: 100%; max-width: 350px; margin: 0 auto 10px auto; border-radius: 8px; overflow: hidden; display: none; }
 
+        /* BANNER KUNCI WAR BID */
+        .lock-banner {
+            background: rgba(255, 0, 85, 0.15);
+            border: 1px solid var(--red);
+            color: var(--red);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: none;
+        }
+
         /* --- STYLES SLIDER FOTO SIMETRIS & DESKRIPSI BADGES --- */
         .slider-wrapper {
             position: relative;
@@ -170,6 +183,19 @@
     <div class="admin-panel" id="adminPanel">
         <h4 style="color: var(--red); margin-bottom: 10px;"><i class="fa-solid fa-user-shield"></i> Panel Kontrol Realtime Owner</h4>
 
+        <!-- KONTROL LOCK / UNLOCK WAR BID -->
+        <div style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+            <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Akses Bidding (War Bid Status):</label>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-sm" style="background: var(--red); color:#fff; font-weight:bold; flex:1;" onclick="toggleLockBid(true)">
+                    <i class="fa-solid fa-lock"></i> KUNCI WAR BID (LOCK)
+                </button>
+                <button class="btn-sm" style="background: var(--green); color:#000; font-weight:bold; flex:1;" onclick="toggleLockBid(false)">
+                    <i class="fa-solid fa-lock-open"></i> BUKA WAR BID (UNLOCK)
+                </button>
+            </div>
+        </div>
+
         <!-- PENGATURAN DURASI LELANG GLOBAL -->
         <div style="margin-bottom: 15px;">
             <label style="font-size: 0.8rem; color: #8d99ae; display:block; margin-bottom: 5px;">Set Timer Durasi Lelang Global (Mulai dari Sekarang):</label>
@@ -180,7 +206,6 @@
                 <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(6)">6 Jam</button>
                 <button class="btn-sm" style="background: var(--gold); color:#000; font-weight:bold;" onclick="setGlobalDuration(12)">⚡ 12 Jam</button>
                 <button class="btn-sm" style="background: var(--blue);" onclick="setGlobalDuration(24)">24 Jam (1 Hari)</button>
-                <!-- TOMBOL MENONAKTIFKAN TIMER -->
                 <button class="btn-sm" style="background: var(--red); color:#fff; font-weight:bold;" onclick="stopTimerGlobal()">⛔ Stop / Matikan Timer</button>
             </div>
 
@@ -204,11 +229,6 @@
             <div class="image-slider" id="imageSlider">
                 <!-- Foto 1 (Utama) -->
                 <img src="https://imgur.com/LdvwN5A.jpeg" class="slide-img" alt="Rod Foto 1">
-                
-                <!-- Silakan tambahkan URL foto ke-2, ke-3, dan ke-4 di bawah ini jika ada -->
-                <!-- <img src="URL_FOTO_2" class="slide-img" alt="Rod Foto 2"> -->
-                <!-- <img src="URL_FOTO_3" class="slide-img" alt="Rod Foto 3"> -->
-                <!-- <img src="URL_FOTO_4" class="slide-img" alt="Rod Foto 4"> -->
             </div>
 
             <button class="slider-btn next" onclick="moveSlide(1)"><i class="fa-solid fa-chevron-right"></i></button>
@@ -238,6 +258,11 @@
             <small style="color: #8d99ae;">BID TERTINGGI</small>
             <div class="price-val" id="highestPrice">Rp 25.000</div>
             <small id="highestBidder" style="color: var(--gold);">Oleh: Belum Ada</small>
+        </div>
+
+        <!-- NOTIFIKASI WAR BID DIKUNCI -->
+        <div class="lock-banner" id="lockBanner">
+            <i class="fa-solid fa-lock"></i> WAR BID BELUM DIBUKA / DIKUNCI OLEH ADMIN
         </div>
 
         <!-- STEP 1: SCAN KAMERA / UPLOAD QR BARCODE ROBLOX -->
@@ -285,7 +310,7 @@
             </div>
 
             <input type="number" id="bidAmountInput" placeholder="Nominal Bid Anda">
-            <button class="btn btn-green" onclick="submitBid()">KIRIM PENAWARAN (BID)</button>
+            <button class="btn btn-green" id="btnSubmitBid" onclick="submitBid()">KIRIM PENAWARAN (BID)</button>
         </div>
 
         <h4 style="margin-top: 15px; font-size: 0.85rem; color: #8d99ae;">Riwayat Penawaran & Player War:</h4>
@@ -307,6 +332,7 @@
     let targetEndTime = 0;
     let highestAmount = 25000;
     let isAdmin = false;
+    let isWarBidLocked = false;
     let html5QrcodeScanner = null;
 
     // SLIDER FOTO FUNCTION
@@ -327,6 +353,7 @@
 
         targetEndTime = data.targetEndTime;
         highestAmount = data.highestAmount || 25000;
+        isWarBidLocked = data.isLocked || false;
 
         document.getElementById("highestPrice").innerText = `Rp ${highestAmount.toLocaleString('id-ID')}`;
 
@@ -335,6 +362,26 @@
                 ? "User_*** (Anonim)" 
                 : `${data.highestBidder.displayName} (@${data.highestBidder.username})`;
             document.getElementById("highestBidder").innerText = `Oleh: ${nameShow}`;
+        }
+
+        // TAMPILAN LOCK STATUS SINKRON REALTIME
+        const lockBanner = document.getElementById("lockBanner");
+        const stepVerifyQR = document.getElementById("stepVerifyQR");
+        const stepIdentity = document.getElementById("stepIdentity");
+        const bidBox = document.getElementById("bidBox");
+
+        if (isWarBidLocked) {
+            lockBanner.style.display = "block";
+            stepVerifyQR.style.display = "none";
+            stepIdentity.style.display = "none";
+            bidBox.style.display = "none";
+        } else {
+            lockBanner.style.display = "none";
+            if (currentUser) {
+                bidBox.style.display = "block";
+            } else {
+                stepVerifyQR.style.display = "block";
+            }
         }
     });
 
@@ -379,7 +426,6 @@
 
     // SINKRONISASI WAKTU REALTIME GLOBAL
     setInterval(() => {
-        // Jika timer dinonaktifkan (dikirim -1 dari database)
         if(targetEndTime === -1) {
             document.getElementById("timer").innerText = "DILANJUTKAN (TANPA TIMER)";
             document.getElementById("timer").style.color = "var(--gold)";
@@ -428,7 +474,13 @@
         }
     }
 
-    // FITUR KAMERA SCAN BARCODE/QR CODE (OPTIMAZED & FAST)
+    // FUNGSI LOCK / UNLOCK WAR BID OLEH ADMIN
+    function toggleLockBid(status) {
+        db.ref('auction_state').update({ isLocked: status });
+        alert(status ? "War Bid Berhasil DIKUNCI!" : "War Bid Berhasil DIBUKA!");
+    }
+
+    // FITUR KAMERA SCAN BARCODE/QR CODE
     function startCameraScanner() {
         const readerDiv = document.getElementById("reader");
         readerDiv.style.display = "block";
@@ -465,74 +517,73 @@
         });
     }
 
-    // SCAN QR DARI UPLOAD FILE (OPTIMIZED & FAST)
-   // FUNGSI UPLOAD QR DENGAN AUTO-ROTATE CANVAS (KHUSUS UPLOAD FILE GAMBAR MIRING)
-async function scanQRFromFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    // SCAN QR DARI UPLOAD FILE (AUTO ROTATE CANVAS)
+    async function scanQRFromFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-    const html5QrCode = new Html5Qrcode("reader");
-
-    // 1. Coba scan gambar asli terlebih dahulu
-    try {
-        const decodedText = await html5QrCode.scanFile(file, true);
-        document.getElementById("robloxLinkInput").value = decodedText;
-        alert("Barcode Profil Berhasil Terbaca!");
-        html5QrCode.clear();
-        return;
-    } catch (err) {
-        console.log("Scan file asli gagal (QR miring). Memulai auto-rotate canvas...");
-    }
-
-    // 2. Jika gagal, buat Canvas untuk memutar gambar miring secara otomatis
-    const image = new Image();
-    image.src = URL.createObjectURL(file);
-    await new Promise(resolve => image.onload = resolve);
-
-    // Daftar sudut kemiringan yang dicoba untuk meluruskan QR Roblox (-20 deg s/d 20 deg & 90 deg)
-    const anglesToTry = [-20, -15, -10, 10, 15, 20, 90, -90];
-    let isSuccess = false;
-
-    for (let angle of anglesToTry) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        const rad = (angle * Math.PI) / 180;
-        const sin = Math.abs(Math.sin(rad));
-        const cos = Math.abs(Math.cos(rad));
-
-        // Sesuaikan ukuran canvas agar gambar tidak terpotong saat diputar
-        canvas.width = image.width * cos + image.height * sin;
-        canvas.height = image.width * sin + image.height * cos;
-
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate(rad);
-        ctx.drawImage(image, -image.width / 2, -image.height / 2);
-
-        // Convert canvas ke blob file untuk dieksekusi scanner
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-        const rotatedFile = new File([blob], "rotated.png", { type: "image/png" });
+        const html5QrCode = new Html5Qrcode("reader");
 
         try {
-            const decodedText = await html5QrCode.scanFile(rotatedFile, false);
+            const decodedText = await html5QrCode.scanFile(file, true);
             document.getElementById("robloxLinkInput").value = decodedText;
             alert("Barcode Profil Berhasil Terbaca!");
-            isSuccess = true;
-            break; // Berhasil terbaca, hentikan perulangan
-        } catch (error) {
-            // Lanjut ke sudut berikutnya jika belum pas
+            html5QrCode.clear();
+            return;
+        } catch (err) {
+            console.log("Scan file asli gagal (QR miring). Memulai auto-rotate canvas...");
+        }
+
+        const image = new Image();
+        image.src = URL.createObjectURL(file);
+        await new Promise(resolve => image.onload = resolve);
+
+        const anglesToTry = [-20, -15, -10, 10, 15, 20, 90, -90];
+        let isSuccess = false;
+
+        for (let angle of anglesToTry) {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            const rad = (angle * Math.PI) / 180;
+            const sin = Math.abs(Math.sin(rad));
+            const cos = Math.abs(Math.cos(rad));
+
+            canvas.width = image.width * cos + image.height * sin;
+            canvas.height = image.width * sin + image.height * cos;
+
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(rad);
+            ctx.drawImage(image, -image.width / 2, -image.height / 2);
+
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const rotatedFile = new File([blob], "rotated.png", { type: "image/png" });
+
+            try {
+                const decodedText = await html5QrCode.scanFile(rotatedFile, false);
+                document.getElementById("robloxLinkInput").value = decodedText;
+                alert("Barcode Profil Berhasil Terbaca!");
+                isSuccess = true;
+                break;
+            } catch (error) {
+                // Try next angle
+            }
+        }
+
+        html5QrCode.clear();
+
+        if (!isSuccess) {
+            alert("Gagal membaca QR dari file. Pastikan posisi gambar terlihat jelas atau masukkan link/username secara manual.");
         }
     }
 
-    html5QrCode.clear();
-
-    if (!isSuccess) {
-        alert("Gagal membaca QR dari file. Pastikan posisi gambar terlihat jelas atau masukkan link/username secara manual.");
-    }
-}
-
     // VERIFIKASI LANGKAH KEDUA
     function goToStepIdentity() {
+        if (isWarBidLocked) {
+            alert("War Bid saat ini sedang dikunci oleh admin.");
+            return;
+        }
+
         const linkVal = document.getElementById("robloxLinkInput").value.trim();
         if(!linkVal) {
             alert("Harap Scan Kamera, Upload Gambar Barcode, atau Masukkan Link Profil!");
@@ -543,6 +594,11 @@ async function scanQRFromFile(e) {
     }
 
     function completeVerification() {
+        if (isWarBidLocked) {
+            alert("War Bid saat ini sedang dikunci oleh admin.");
+            return;
+        }
+
         const dispName = document.getElementById("inputDisplayName").value.trim();
         const uName = document.getElementById("inputUsername").value.trim().replace('@', '');
         let linkVal = document.getElementById("robloxLinkInput").value.trim();
@@ -581,6 +637,11 @@ async function scanQRFromFile(e) {
 
     // KIRIM BID PENAWARAN & SIMPAN DATA KE SPREADSHEET
     function submitBid() {
+        if (isWarBidLocked) {
+            alert("War Bid sedang dikunci oleh admin. Tidak dapat melakukan penawaran.");
+            return;
+        }
+
         if(!currentUser) return;
         const amount = parseInt(document.getElementById("bidAmountInput").value);
         const isAnon = document.getElementById("anonCheck").checked;
