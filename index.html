@@ -196,14 +196,6 @@
             color: var(--blue);
             background: rgba(58, 134, 255, 0.08);
         }
-
-        .loading-text {
-            display: none;
-            color: var(--gold);
-            font-size: 0.8rem;
-            margin-top: 5px;
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -284,7 +276,7 @@
             <span class="badge"><i class="fa-solid fa-id-card"></i> Icon Nametag 1Year </span>
             <span class="badge badge-gold"><i class="fa-solid fa-crown"></i> Only One Person Has It</span>
             <span class="badge"><i class="fa-solid fa-gem"></i> Rarity Unknown </span>
-            <span class="badge badge-blue"><i class="fa-solid fa-users"></i> Member Group Verified </span>
+            <span class="badge badge-blue"><i class="fa-solid fa-shield-halved"></i> Realtime Verification </span>
         </div>
     </div>
 
@@ -305,67 +297,57 @@
             <i class="fa-solid fa-lock"></i> WAR BID BELUM DIBUKA / DIKUNCI OLEH KYLEE
         </div>
 
-        <!-- STEP 1: VERIFIKASI DENGAN VERIFIKASI MEMBER GROUP -->
+        <!-- STEP 1: VERIFIKASI DENGAN 3 OPSI -->
         <div class="verify-card" id="stepVerifyQR">
             <p style="font-size: 0.8rem; margin-bottom: 10px;">
-                <i class="fa-solid fa-shield-halved"></i> <strong>Langkah 1: Verifikasi Member Komunitas Roblox</strong>
+                <i class="fa-solid fa-qrcode"></i> <strong>Langkah 1: Verifikasi Akun Roblox</strong>
             </p>
 
             <div class="tab-options">
                 <button class="tab-btn active" id="btnTab1" onclick="switchOptionTab(1)">
-                    <i class="fa-solid fa-user-check"></i> Cek Username / ID
-                </button>
-                <button class="tab-btn" id="btnTab2" onclick="switchOptionTab(2)">
                     <i class="fa-solid fa-camera"></i> Scan Kamera
                 </button>
-                <button class="tab-btn" id="btnTab3" onclick="switchOptionTab(3)">
+                <button class="tab-btn" id="btnTab2" onclick="switchOptionTab(2)">
                     <i class="fa-solid fa-file-arrow-up"></i> Upload Gambar
                 </button>
-            </div>
-
-            <!-- OPSI 1: INPUT USERNAME / ID & VERIFIKASI GRUP OTOMATIS -->
-            <div class="tab-content active" id="tabContent1">
-                <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Masukkan Username atau ID Roblox Anda:</label>
-                <input type="text" id="robloxInputIdentifier" placeholder="Contoh: Cosntelation444 atau 12345678">
-                <button class="btn btn-blue" id="btnCheckGroup" onclick="verifyGroupMembership()">
-                    <i class="fa-solid fa-magnifying-glass"></i> Cek Keanggotaan Grup Roblox
+                <button class="tab-btn" id="btnTab3" onclick="switchOptionTab(3)">
+                    <i class="fa-solid fa-link"></i> Link Roblox
                 </button>
-                <div class="loading-text" id="loadingGroup">⏳ Memeriksa keanggotaan grup di database Roblox...</div>
-                
-                <p style="font-size:0.7rem; color:#8d99ae; margin-top:8px;">
-                    📌 *Wajib bergabung dalam Grup Komunitas Roblox ID <strong>1079537254</strong> untuk dapat mengikuti lelang.*
-                </p>
             </div>
 
-            <!-- OPSI 2: SCAN VIA KAMERA -->
-            <div class="tab-content" id="tabContent2">
+            <!-- OPSI 1: SCAN VIA KAMERA -->
+            <div class="tab-content active" id="tabContent1">
                 <button class="btn-sm" style="background: var(--gold); color:#000; width:100%; margin-bottom:10px; font-weight:700;" onclick="startCameraScanner()">
                     <i class="fa-solid fa-camera"></i> Buka Kamera Scan Barcode
                 </button>
                 <div id="reader"></div>
             </div>
 
-            <!-- OPSI 3: UPLOAD GAMBAR BARCODE INSTAN -->
-            <div class="tab-content" id="tabContent3">
+            <!-- OPSI 2: UPLOAD GAMBAR BARCODE INSTAN -->
+            <div class="tab-content" id="tabContent2">
                 <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Pilih / Upload File Gambar QR Code:</label>
                 <input type="file" id="qrFileInput" accept="image/*" onchange="scanQRFromFile(event)">
             </div>
+
+            <!-- OPSI 3: INPUT LINK ROBLOX MANUAL -->
+            <div class="tab-content" id="tabContent3">
+                <label style="font-size:0.75rem; color:#8d99ae; display:block; margin-bottom: 5px;">Tempelkan Link Profil / Share Link Roblox Anda:</label>
+                <input type="text" id="robloxLinkInput" placeholder="https://www.roblox.com/share?code=... atau /users/123/profile">
+                <button class="btn btn-blue" onclick="processRobloxVerification()">Lanjut Ke Langkah 2</button>
+            </div>
         </div>
 
-        <!-- STEP 2: PROFILE HASIL VERIFIKASI (TERKUNCI SECARA OTOMATIS) -->
+        <!-- STEP 2: ISI IDENTITAS -->
         <div class="verify-card" id="stepIdentity" style="display: none;">
-            <p style="font-size: 0.8rem; margin-bottom: 10px; color: var(--green);">
-                <i class="fa-solid fa-circle-check"></i> <strong>Pemain Terverifikasi Terdaftar di Grup!</strong>
+            <p style="font-size: 0.8rem; margin-bottom: 10px;">
+                <i class="fa-solid fa-user-check"></i> <strong>Langkah 2: Lengkapi Profile Player</strong>
             </p>
             
-            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Display Name Roblox (Resmi):</label>
-            <input type="text" id="inputDisplayName" readonly style="background: #151824; color: #fff; cursor: not-allowed;">
+            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Display Name Roblox (Bisa Diisi/Diubah):</label>
+            <input type="text" id="inputDisplayName" placeholder="Display Name Roblox">
 
-            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Roblox Username (Resmi):</label>
-            <input type="text" id="inputUsername" readonly style="background: #151824; color: var(--gold); cursor: not-allowed;">
-
-            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Role di Komunitas:</label>
-            <input type="text" id="inputGroupRole" readonly style="background: #151824; color: var(--green); cursor: not-allowed;">
+            <label style="font-size:0.75rem; color:#8d99ae; display:block; text-align:left;">Roblox Username / ID:</label>
+            <input type="text" id="inputUsername" placeholder="Username / ID Roblox">
 
             <div style="display: flex; gap: 8px; align-items: center; font-size: 0.8rem; margin-bottom: 10px; color: #8d99ae; text-align: left;">
                 <input type="checkbox" id="anonCheck">
@@ -403,7 +385,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const SPREADSHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw9y76F0T91VNUaGnLt-h1TKb3ZzzvVrG5rXdQMJTu3nz7YfWAxOUf7VT9xwJH_3d2j/exec";
+    const SPREADSHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxwOwomSE_JOfcs5mNNdGfPQ1A3nDaVgcuGAivLihP9TXTYXFTVC_LJQUGYzvkG9LoO/exec";
 
     let currentUser = null;
     let targetEndTime = 0;
@@ -430,7 +412,7 @@
         document.getElementById(`btnTab${tabIndex}`).classList.add("active");
         document.getElementById(`tabContent${tabIndex}`).classList.add("active");
 
-        if(tabIndex !== 2 && html5QrcodeScanner) {
+        if(tabIndex !== 1 && html5QrcodeScanner) {
             try { html5QrcodeScanner.stop(); } catch(e) {}
             document.getElementById("reader").style.display = "none";
         }
@@ -613,67 +595,55 @@
         alert(status ? "Mode Anonim Diterapkan!" : "Mode Anonim DIBUKA!");
     }
 
-    // FUNGSI VERIFIKASI MEMBER GRUP ROBLOX TERKUNCI OTOMATIS
-    // FUNGSI VERIFIKASI MEMBER GRUP ROBLOX TERKUNCI OTOMATIS (FIXED FETCH & CORS)
-async function verifyGroupMembership(identifierVal = null) {
-    if (isWarBidLocked) {
-        alert("War Bid saat ini sedang dikunci oleh Kylee.");
-        return;
-    }
-
-    let identifier = identifierVal ? identifierVal : document.getElementById("robloxInputIdentifier").value.trim();
-
-    if(!identifier) {
-        alert("Harap masukkan Username atau ID Roblox Anda!");
-        return;
-    }
-
-    // Ambil ID dari URL jika user memasukkan link profil
-    const matchUsers = identifier.match(/roblox\.com\/users\/(\d+)/i);
-    if (matchUsers && matchUsers[1]) {
-        identifier = matchUsers[1];
-    }
-
-    document.getElementById("loadingGroup").style.display = "block";
-    document.getElementById("btnCheckGroup").disabled = true;
-
-    try {
-        const fetchUrl = `${SPREADSHEET_WEB_APP_URL}?action=checkGroupMember&identifier=${encodeURIComponent(identifier)}`;
-        
-        // Menambahkan redirect: 'follow' untuk menangani Google Apps Script Redirect
-        const response = await fetch(fetchUrl, {
-            method: 'GET',
-            redirect: 'follow'
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP Status Error: ${response.status}`);
+    // FUNGSI PROSES VERIFIKASI LINK ROBLOX
+    async function processRobloxVerification(scannedUrl = null) {
+        if (isWarBidLocked) {
+            alert("War Bid saat ini sedang dikunci oleh Kylee.");
+            return;
         }
 
-        const data = await response.json();
+        const linkVal = scannedUrl ? scannedUrl : document.getElementById("robloxLinkInput").value.trim();
 
-        document.getElementById("loadingGroup").style.display = "none";
-        document.getElementById("btnCheckGroup").disabled = false;
+        if(!linkVal) {
+            alert("Harap masukkan link profil resmi / link share Roblox!");
+            return;
+        }
 
-        if (data.success) {
-            // Isi form identitas secara otomatis dan kunci form agar tidak bisa diedit asal-asalan
-            document.getElementById("inputDisplayName").value = data.displayName;
-            document.getElementById("inputUsername").value = data.username;
-            document.getElementById("inputGroupRole").value = data.roleInGroup;
+        const uInput = document.getElementById("inputUsername");
+        uInput.removeAttribute("readonly");
+        uInput.style.background = "#0a0c14";
+        uInput.style.color = "#fff";
+        uInput.style.cursor = "text";
 
-            document.getElementById("stepVerifyQR").style.display = "none";
-            document.getElementById("stepIdentity").style.display = "block";
+        const matchUsers = linkVal.match(/roblox\.com\/users\/(\d+)/i);
+        
+        if (matchUsers && matchUsers[1]) {
+            const userId = matchUsers[1];
+            document.getElementById("robloxLinkInput").value = `https://www.roblox.com/users/${userId}/profile`;
+            
+            try {
+                const res = await fetch(`https://users.roblox.com/v1/users/${userId}`);
+                if (res.ok) {
+                    const userData = await res.json();
+                    document.getElementById("inputDisplayName").value = userData.displayName || "";
+                    document.getElementById("inputUsername").value = userData.name || "";
+                } else {
+                    document.getElementById("inputDisplayName").value = "";
+                    document.getElementById("inputUsername").value = "";
+                }
+            } catch (e) {
+                document.getElementById("inputDisplayName").value = "";
+                document.getElementById("inputUsername").value = "";
+            }
         } else {
-            alert(data.message);
+            document.getElementById("robloxLinkInput").value = linkVal;
+            document.getElementById("inputDisplayName").value = "";
+            document.getElementById("inputUsername").value = "";
         }
-    } catch (error) {
-        console.error("Detail Error Verifikasi:", error);
-        document.getElementById("loadingGroup").style.display = "none";
-        document.getElementById("btnCheckGroup").disabled = false;
-        
-        alert("❌ Verifikasi gagal merespons!\n\nHal ini biasanya terjadi karena:\n1. Google Apps Script belum di-Deploy ulang sebagai 'New Deployment'.\n2. Akses Deployment belum diatur ke 'Anyone' (Siapa saja).");
+
+        document.getElementById("stepVerifyQR").style.display = "none";
+        document.getElementById("stepIdentity").style.display = "block";
     }
-}
 
     // SCANNER KAMERA
     function startCameraScanner() {
@@ -693,7 +663,7 @@ async function verifyGroupMembership(identifierVal = null) {
             (decodedText) => {
                 html5QrcodeScanner.stop().then(() => {
                     readerDiv.style.display = "none";
-                    verifyGroupMembership(decodedText);
+                    processRobloxVerification(decodedText);
                 });
             },
             (errorMessage) => {}
@@ -738,9 +708,9 @@ async function verifyGroupMembership(identifierVal = null) {
         try { html5QrCode.clear(); } catch(err){}
 
         if (decodedText) {
-            verifyGroupMembership(decodedText);
+            processRobloxVerification(decodedText);
         } else {
-            alert("❌ QR Code tidak terbaca!\nSilakan masukkan Username / ID Roblox secara manual.");
+            alert("❌ QR Code tidak terbaca!\nSilakan gunakan Opsi 3 (Input Link Roblox) langsung.");
         }
     }
 
@@ -752,11 +722,14 @@ async function verifyGroupMembership(identifierVal = null) {
 
         const dispName = document.getElementById("inputDisplayName").value.trim();
         let uName = document.getElementById("inputUsername").value.trim();
+        const linkVal = document.getElementById("robloxLinkInput").value.trim();
 
         if(!dispName || !uName) {
-            alert("Gagal memuat profil terverifikasi!");
+            alert("Harap lengkapi Display Name dan Username Roblox Anda!");
             return;
         }
+
+        if(uName.startsWith("@")) uName = uName.substring(1);
 
         const optionsWITA = { timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
         const nowWITA = new Intl.DateTimeFormat('id-ID', optionsWITA).format(new Date());
@@ -764,11 +737,11 @@ async function verifyGroupMembership(identifierVal = null) {
         currentUser = {
             displayName: dispName,
             username: uName,
-            robloxLink: `https://www.roblox.com/search/users?keyword=${uName}`,
+            robloxLink: linkVal,
             verifiedAtWITA: nowWITA
         };
 
-        alert(`Verifikasi Komunitas Berhasil!\nSelamat datang ${currentUser.displayName} (@${currentUser.username})`);
+        alert(`Verifikasi Berhasil! Selamat datang ${currentUser.displayName} (@${currentUser.username})`);
         document.getElementById("stepIdentity").style.display = "none";
         document.getElementById("bidBox").style.display = "block";
         document.getElementById("bidAmountInput").value = highestAmount + 10000;
@@ -874,11 +847,14 @@ async function verifyGroupMembership(identifierVal = null) {
         }
     }
 
+    // PERBAIKAN LOGIKA KICK PLAYER SCAMMER
     async function kickPlayer(bidKey) {
         if(!confirm("Kick/tendang player scammer ini dari lelang?")) return;
 
+        // 1. Hapus bid scammer dari Firebase Realtime DB
         await db.ref(`bids/${bidKey}`).remove();
 
+        // 2. Ambil seluruh sisa riwayat bid
         const snapshot = await db.ref('bids').once('value');
         const remainingBids = snapshot.val();
 
@@ -886,6 +862,7 @@ async function verifyGroupMembership(identifierVal = null) {
             let maxBid = null;
             let maxAmount = INITIAL_START_PRICE;
 
+            // Cari bid terbesar sah dari sisa penawar
             Object.values(remainingBids).forEach(b => {
                 if (parseInt(b.amount) > maxAmount) {
                     maxAmount = parseInt(b.amount);
@@ -893,11 +870,13 @@ async function verifyGroupMembership(identifierVal = null) {
                 }
             });
 
+            // Update status lelang global ke bid terbesar yang sah
             await db.ref('auction_state').update({
                 highestAmount: maxAmount,
                 highestBidder: maxBid
             });
         } else {
+            // Jika semua bid habis terhapus, kembalikan ke harga awal lelang (Rp 25.000)
             await db.ref('auction_state').update({
                 highestAmount: INITIAL_START_PRICE,
                 highestBidder: null
