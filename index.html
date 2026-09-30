@@ -251,7 +251,10 @@
         </div>
 
         <div style="display: flex; gap: 10px;">
-            <button class="btn-sm" style="background: var(--red);" onclick="clearBids()">Reset Semua Bid</button>
+            <button class="btn-sm" style="background: var(--blue); color: #fff; font-weight: bold; flex: 1;" onclick="triggerGlobalRefresh()">
+                <i class="fa-solid fa-rotate"></i> REFRESH GLOBAL (SEMUA PLAYER)
+            </button>
+            <button class="btn-sm" style="background: var(--red); flex: 1;" onclick="clearBids()">Reset Semua Bid</button>
         </div>
     </div>
 
@@ -397,6 +400,7 @@
     let cachedBidsSnapshot = null;
     let cachedStateData = null;
     let lastBidTime = 0;
+    let initialRefreshTrigger = null;
 
     function moveSlide(direction) {
         const slider = document.getElementById("imageSlider");
@@ -417,6 +421,18 @@
             document.getElementById("reader").style.display = "none";
         }
     }
+
+    // LISTENER REFRESH GLOBAL
+    db.ref('auction_state/refreshTrigger').on('value', snapshot => {
+        const val = snapshot.val();
+        if (val === null) return;
+
+        if (initialRefreshTrigger === null) {
+            initialRefreshTrigger = val;
+        } else if (initialRefreshTrigger !== val) {
+            location.reload();
+        }
+    });
 
     db.ref('auction_state').on('value', snapshot => {
         const data = snapshot.val();
@@ -568,6 +584,13 @@
             document.getElementById("timer").innerText = `${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
         }
     }, 1000);
+
+    function triggerGlobalRefresh() {
+        if(confirm("Apakah Anda yakin ingin MEREFRESH halaman web seluruh player secara GLOBAL?")) {
+            db.ref('auction_state').update({ refreshTrigger: Date.now() });
+            alert("Sinyal Refresh Global Berhasil Terkirim!");
+        }
+    }
 
     function setGlobalDuration(hours) {
         const nowMs = Date.now();
@@ -759,71 +782,65 @@
             alert("War Bid sedang dikunci oleh Kylee. Tidak dapat melakukan penawaran.");
             return;
         }
-function submitBid() {
-    if (isWarBidLocked) {
-        alert("War Bid sedang dikunci oleh Kylee. Tidak dapat melakukan penawaran.");
-        return;
+
+        if(!currentUser) return;
+
+        const now = Date.now();
+        const COOLDOWN_MS = 60000; // 1 Menit
+
+        if (now - lastBidTime < COOLDOWN_MS) {
+            const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastBidTime)) / 1000);
+            alert(`⚠️ JEDA ANTI-SPAM! Mohon tunggu ${remainingSeconds} detik lagi sebelum mengirim penawaran.`);
+            return;
+        }
+
+        const amount = parseInt(document.getElementById("bidAmountInput").value);
+        const isAnon = document.getElementById("anonCheck").checked;
+
+        if(isNaN(amount) || amount <= highestAmount) {
+            alert(`Bid harus lebih besar dari Rp ${highestAmount.toLocaleString('id-ID')}`);
+            return;
+        }
+
+        const isRiskyJump = amount >= (highestAmount * 2) || (amount - highestAmount) >= 500000;
+
+        if (isRiskyJump) {
+            const confirmBid = confirm(
+                "⚠️ PERINGATAN RESIKO KICK / SCAM BID! ⚠️\n\n" +
+                `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini.\n\n` +
+                "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran melebihinya?"
+            );
+
+            if (!confirmBid) return;
+        }
+
+        lastBidTime = Date.now();
+
+        const bidData = {
+            displayName: currentUser.displayName,
+            username: currentUser.username,
+            robloxLink: currentUser.robloxLink,
+            verifiedAt: currentUser.verifiedAtWITA,
+            amount: amount,
+            isAnon: isAnon,
+            timestamp: lastBidTime
+        };
+
+        db.ref('bids').push(bidData);
+        db.ref('auction_state').update({
+            highestAmount: amount,
+            highestBidder: bidData
+        });
+
+        fetch(SPREADSHEET_WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bidData)
+        });
+
+        alert("Penawaran Berhasil Dikirim!");
     }
-
-    if(!currentUser) return;
-
-    const now = Date.now();
-    // PERBAIKAN: Cooldown diset ke 60000ms (1 Menit)
-    const COOLDOWN_MS = 60000;
-
-    if (now - lastBidTime < COOLDOWN_MS) {
-        const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastBidTime)) / 1000);
-        alert(`⚠️ JEDA ANTI-SPAM! Mohon tunggu ${remainingSeconds} detik lagi sebelum mengirim penawaran.`);
-        return;
-    }
-
-    const amount = parseInt(document.getElementById("bidAmountInput").value);
-    const isAnon = document.getElementById("anonCheck").checked;
-
-    if(isNaN(amount) || amount <= highestAmount) {
-        alert(`Bid harus lebih besar dari Rp ${highestAmount.toLocaleString('id-ID')}`);
-        return;
-    }
-
-    const isRiskyJump = amount >= (highestAmount * 2) || (amount - highestAmount) >= 500000;
-
-    if (isRiskyJump) {
-        const confirmBid = confirm(
-            "⚠️ PERINGATAN RESIKO KICK / SCAM BID! ⚠️\n\n" +
-            `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini.\n\n` +
-            "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran melebihinya?"
-        );
-
-        if (!confirmBid) return;
-    }
-
-    lastBidTime = Date.now();
-
-    const bidData = {
-        displayName: currentUser.displayName,
-        username: currentUser.username,
-        robloxLink: currentUser.robloxLink,
-        verifiedAt: currentUser.verifiedAtWITA,
-        amount: amount,
-        isAnon: isAnon,
-        timestamp: lastBidTime
-    };
-
-    db.ref('bids').push(bidData);
-    db.ref('auction_state').update({
-        highestAmount: amount,
-        highestBidder: bidData
-    });
-
-    fetch(SPREADSHEET_WEB_APP_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bidData)
-    });
-
-    alert("Penawaran Berhasil Dikirim!");
-}
 
     function loginAdmin() {
         const pin = prompt("Masukkan PIN Control:");
@@ -853,14 +870,11 @@ function submitBid() {
         }
     }
 
-    // PERBAIKAN LOGIKA KICK PLAYER SCAMMER
     async function kickPlayer(bidKey) {
         if(!confirm("Kick/tendang player scammer ini dari lelang?")) return;
 
-        // 1. Hapus bid scammer dari Firebase Realtime DB
         await db.ref(`bids/${bidKey}`).remove();
 
-        // 2. Ambil seluruh sisa riwayat bid
         const snapshot = await db.ref('bids').once('value');
         const remainingBids = snapshot.val();
 
@@ -868,7 +882,6 @@ function submitBid() {
             let maxBid = null;
             let maxAmount = INITIAL_START_PRICE;
 
-            // Cari bid terbesar sah dari sisa penawar
             Object.values(remainingBids).forEach(b => {
                 if (parseInt(b.amount) > maxAmount) {
                     maxAmount = parseInt(b.amount);
@@ -876,13 +889,11 @@ function submitBid() {
                 }
             });
 
-            // Update status lelang global ke bid terbesar yang sah
             await db.ref('auction_state').update({
                 highestAmount: maxAmount,
                 highestBidder: maxBid
             });
         } else {
-            // Jika semua bid habis terhapus, kembalikan ke harga awal lelang (Rp 25.000)
             await db.ref('auction_state').update({
                 highestAmount: INITIAL_START_PRICE,
                 highestBidder: null
