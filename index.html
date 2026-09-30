@@ -786,7 +786,7 @@
         if(!currentUser) return;
 
         const now = Date.now();
-        const COOLDOWN_MS = 60000; // 1 Menit
+        const COOLDOWN_MS = 0; // 1 Menit
 
         if (now - lastBidTime < COOLDOWN_MS) {
             const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastBidTime)) / 1000);
