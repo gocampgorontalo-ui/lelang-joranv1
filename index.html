@@ -759,65 +759,71 @@
             alert("War Bid sedang dikunci oleh Kylee. Tidak dapat melakukan penawaran.");
             return;
         }
-
-        if(!currentUser) return;
-
-        const now = Date.now();
-        const COOLDOWN_MS = 60000;
-
-        if (now - lastBidTime < COOLDOWN_MS) {
-            const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastBidTime)) / 1000);
-            alert(`⚠️ JEDA ANTI-SPAM! Mohon tunggu ${remainingSeconds} detik lagi sebelum mengirim penawaran.`);
-            return;
-        }
-
-        const amount = parseInt(document.getElementById("bidAmountInput").value);
-        const isAnon = document.getElementById("anonCheck").checked;
-
-        if(isNaN(amount) || amount <= highestAmount) {
-            alert(`Bid harus lebih besar dari Rp ${highestAmount.toLocaleString('id-ID')}`);
-            return;
-        }
-
-        const isRiskyJump = amount >= (highestAmount * 2) || (amount - highestAmount) >= 500000;
-
-        if (isRiskyJump) {
-            const confirmBid = confirm(
-                "⚠️ PERINGATAN RESIKO KICK / SCAM BID! ⚠️\n\n" +
-                `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini.\n\n` +
-                "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran melebihinya?"
-            );
-
-            if (!confirmBid) return;
-        }
-
-        lastBidTime = Date.now();
-
-        const bidData = {
-            displayName: currentUser.displayName,
-            username: currentUser.username,
-            robloxLink: currentUser.robloxLink,
-            verifiedAt: currentUser.verifiedAtWITA,
-            amount: amount,
-            isAnon: isAnon,
-            timestamp: lastBidTime
-        };
-
-        db.ref('bids').push(bidData);
-        db.ref('auction_state').update({
-            highestAmount: amount,
-            highestBidder: bidData
-        });
-
-        fetch(SPREADSHEET_WEB_APP_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bidData)
-        });
-
-        alert("Penawaran Berhasil Dikirim!");
+function submitBid() {
+    if (isWarBidLocked) {
+        alert("War Bid sedang dikunci oleh Kylee. Tidak dapat melakukan penawaran.");
+        return;
     }
+
+    if(!currentUser) return;
+
+    const now = Date.now();
+    // PERBAIKAN: Cooldown diset ke 60000ms (1 Menit)
+    const COOLDOWN_MS = 60000;
+
+    if (now - lastBidTime < COOLDOWN_MS) {
+        const remainingSeconds = Math.ceil((COOLDOWN_MS - (now - lastBidTime)) / 1000);
+        alert(`⚠️ JEDA ANTI-SPAM! Mohon tunggu ${remainingSeconds} detik lagi sebelum mengirim penawaran.`);
+        return;
+    }
+
+    const amount = parseInt(document.getElementById("bidAmountInput").value);
+    const isAnon = document.getElementById("anonCheck").checked;
+
+    if(isNaN(amount) || amount <= highestAmount) {
+        alert(`Bid harus lebih besar dari Rp ${highestAmount.toLocaleString('id-ID')}`);
+        return;
+    }
+
+    const isRiskyJump = amount >= (highestAmount * 2) || (amount - highestAmount) >= 500000;
+
+    if (isRiskyJump) {
+        const confirmBid = confirm(
+            "⚠️ PERINGATAN RESIKO KICK / SCAM BID! ⚠️\n\n" +
+            `Penawaran Anda (Rp ${amount.toLocaleString('id-ID')}) jauh lebih tinggi dari tawaran saat ini.\n\n` +
+            "Apakah Anda YAKIN dan SERIUS ingin melanjutkan penawaran melebihinya?"
+        );
+
+        if (!confirmBid) return;
+    }
+
+    lastBidTime = Date.now();
+
+    const bidData = {
+        displayName: currentUser.displayName,
+        username: currentUser.username,
+        robloxLink: currentUser.robloxLink,
+        verifiedAt: currentUser.verifiedAtWITA,
+        amount: amount,
+        isAnon: isAnon,
+        timestamp: lastBidTime
+    };
+
+    db.ref('bids').push(bidData);
+    db.ref('auction_state').update({
+        highestAmount: amount,
+        highestBidder: bidData
+    });
+
+    fetch(SPREADSHEET_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bidData)
+    });
+
+    alert("Penawaran Berhasil Dikirim!");
+}
 
     function loginAdmin() {
         const pin = prompt("Masukkan PIN Control:");
