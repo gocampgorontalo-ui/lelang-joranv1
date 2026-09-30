@@ -871,37 +871,40 @@
     }
 
     async function kickPlayer(bidKey) {
-        if(!confirm("Kick/tendang player scammer ini dari lelang?")) return;
+    if(!confirm("Kick/tendang player scammer ini dari lelang?")) return;
 
-        await db.ref(`bids/${bidKey}`).remove();
+    // Ambil data player sebelum dihapus
+    const bidSnap = await db.ref(`bids/${bidKey}`).once('value');
+    const kickedData = bidSnap.val();
 
-        const snapshot = await db.ref('bids').once('value');
-        const remainingBids = snapshot.val();
+    // Hapus bid scammer
+    await db.ref(`bids/${bidKey}`).remove();
 
-        if (remainingBids) {
-            let maxBid = null;
-            let maxAmount = INITIAL_START_PRICE;
+    const snapshot = await db.ref('bids').once('value');
+    const remainingBids = snapshot.val();
 
-            Object.values(remainingBids).forEach(b => {
-                if (parseInt(b.amount) > maxAmount) {
-                    maxAmount = parseInt(b.amount);
-                    maxBid = b;
-                }
-            });
+    let maxBid = null;
+    let maxAmount = INITIAL_START_PRICE;
 
-            await db.ref('auction_state').update({
-                highestAmount: maxAmount,
-                highestBidder: maxBid
-            });
-        } else {
-            await db.ref('auction_state').update({
-                highestAmount: INITIAL_START_PRICE,
-                highestBidder: null
-            });
-        }
-
-        alert("Player berhasil di-kick dan nominal lelang telah dikembalikan ke penawaran sah terbesar saat ini.");
+    if (remainingBids) {
+        Object.values(remainingBids).forEach(b => {
+            if (parseInt(b.amount) > maxAmount) {
+                maxAmount = parseInt(b.amount);
+                maxBid = b;
+            }
+        });
     }
+
+    // Kirim sinyal Kick & update Highest Bid ke Firebase
+    await db.ref('auction_state').update({
+        highestAmount: maxAmount,
+        highestBidder: maxBid,
+        lastKickedPlayer: kickedData,
+        kickTimestamp: Date.now()
+    });
+
+    alert("Player berhasil di-kick dan notifikasi scammer dikirimkan ke game Roblox!");
+}
 </script>
 </body>
 </html>
