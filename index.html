@@ -403,7 +403,7 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const SPREADSHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxwOwomSE_JOfcs5mNNdGfPQ1A3nDaVgcuGAivLihP9TXTYXFTVC_LJQUGYzvkG9LoO/exec";
+    const SPREADSHEET_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw9y76F0T91VNUaGnLt-h1TKb3ZzzvVrG5rXdQMJTu3nz7YfWAxOUf7VT9xwJH_3d2j/exec";
 
     let currentUser = null;
     let targetEndTime = 0;
@@ -614,53 +614,66 @@
     }
 
     // FUNGSI VERIFIKASI MEMBER GRUP ROBLOX TERKUNCI OTOMATIS
-    async function verifyGroupMembership(identifierVal = null) {
-        if (isWarBidLocked) {
-            alert("War Bid saat ini sedang dikunci oleh Kylee.");
-            return;
-        }
-
-        let identifier = identifierVal ? identifierVal : document.getElementById("robloxInputIdentifier").value.trim();
-
-        if(!identifier) {
-            alert("Harap masukkan Username atau ID Roblox Anda!");
-            return;
-        }
-
-        // Ambil ID dari URL jika user memasukkan link profil
-        const matchUsers = identifier.match(/roblox\.com\/users\/(\d+)/i);
-        if (matchUsers && matchUsers[1]) {
-            identifier = matchUsers[1];
-        }
-
-        document.getElementById("loadingGroup").style.display = "block";
-        document.getElementById("btnCheckGroup").disabled = true;
-
-        try {
-            const fetchUrl = `${SPREADSHEET_WEB_APP_URL}?action=checkGroupMember&identifier=${encodeURIComponent(identifier)}`;
-            const response = await fetch(fetchUrl);
-            const data = await response.json();
-
-            document.getElementById("loadingGroup").style.display = "none";
-            document.getElementById("btnCheckGroup").disabled = false;
-
-            if (data.success) {
-                // Isi form identitas secara otomatis dan kunci form agar tidak bisa diedit asal-asalan
-                document.getElementById("inputDisplayName").value = data.displayName;
-                document.getElementById("inputUsername").value = data.username;
-                document.getElementById("inputGroupRole").value = data.roleInGroup;
-
-                document.getElementById("stepVerifyQR").style.display = "none";
-                document.getElementById("stepIdentity").style.display = "block";
-            } else {
-                alert(data.message);
-            }
-        } catch (error) {
-            document.getElementById("loadingGroup").style.display = "none";
-            document.getElementById("btnCheckGroup").disabled = false;
-            alert("Gagal melakukan verifikasi grup. Pastikan jaringan internet stabil dan coba lagi.");
-        }
+    // FUNGSI VERIFIKASI MEMBER GRUP ROBLOX TERKUNCI OTOMATIS (FIXED FETCH & CORS)
+async function verifyGroupMembership(identifierVal = null) {
+    if (isWarBidLocked) {
+        alert("War Bid saat ini sedang dikunci oleh Kylee.");
+        return;
     }
+
+    let identifier = identifierVal ? identifierVal : document.getElementById("robloxInputIdentifier").value.trim();
+
+    if(!identifier) {
+        alert("Harap masukkan Username atau ID Roblox Anda!");
+        return;
+    }
+
+    // Ambil ID dari URL jika user memasukkan link profil
+    const matchUsers = identifier.match(/roblox\.com\/users\/(\d+)/i);
+    if (matchUsers && matchUsers[1]) {
+        identifier = matchUsers[1];
+    }
+
+    document.getElementById("loadingGroup").style.display = "block";
+    document.getElementById("btnCheckGroup").disabled = true;
+
+    try {
+        const fetchUrl = `${SPREADSHEET_WEB_APP_URL}?action=checkGroupMember&identifier=${encodeURIComponent(identifier)}`;
+        
+        // Menambahkan redirect: 'follow' untuk menangani Google Apps Script Redirect
+        const response = await fetch(fetchUrl, {
+            method: 'GET',
+            redirect: 'follow'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP Status Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        document.getElementById("loadingGroup").style.display = "none";
+        document.getElementById("btnCheckGroup").disabled = false;
+
+        if (data.success) {
+            // Isi form identitas secara otomatis dan kunci form agar tidak bisa diedit asal-asalan
+            document.getElementById("inputDisplayName").value = data.displayName;
+            document.getElementById("inputUsername").value = data.username;
+            document.getElementById("inputGroupRole").value = data.roleInGroup;
+
+            document.getElementById("stepVerifyQR").style.display = "none";
+            document.getElementById("stepIdentity").style.display = "block";
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        console.error("Detail Error Verifikasi:", error);
+        document.getElementById("loadingGroup").style.display = "none";
+        document.getElementById("btnCheckGroup").disabled = false;
+        
+        alert("❌ Verifikasi gagal merespons!\n\nHal ini biasanya terjadi karena:\n1. Google Apps Script belum di-Deploy ulang sebagai 'New Deployment'.\n2. Akses Deployment belum diatur ke 'Anyone' (Siapa saja).");
+    }
+}
 
     // SCANNER KAMERA
     function startCameraScanner() {
